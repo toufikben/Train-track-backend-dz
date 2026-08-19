@@ -166,9 +166,10 @@ def admin_importprobe():
     import socket
     import traceback
     result["socket_tests"] = {}
-    for host in ["aws-us-east-1.pooler.supabase.com", "aws-us-west-1.pooler.supabase.com",
-                 "aws-eu-west-1.pooler.supabase.com", "aws-eu-central-1.pooler.supabase.com",
-                 "aws-ap-southeast-1.pooler.supabase.com"]:
+    for host in ["aws-0-us-east-1.pooler.supabase.com", "aws-0-us-west-1.pooler.supabase.com",
+                 "aws-0-eu-west-1.pooler.supabase.com", "aws-0-eu-central-1.pooler.supabase.com",
+                 "aws-0-ap-southeast-1.pooler.supabase.com", "aws-0-ap-northeast-1.pooler.supabase.com",
+                 "aws-0-sa-east-1.pooler.supabase.com", "aws-0-ca-central-1.pooler.supabase.com"]:
         for port in (5432, 6543):
             key = f"{host}:{port}"
             try:
