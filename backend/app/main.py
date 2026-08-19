@@ -50,6 +50,15 @@ if _REF is not None and not store.stations and not _pg_active:
 if _SEG is not None and not store.railway_segments and not _pg_active:
     store.load_railway_segments_geojson(str(_SEG))
 
+def haversine(a, b):
+    import math as _m
+    lat1, lon1 = _m.radians(a[1]), _m.radians(a[0])
+    lat2, lon2 = _m.radians(b[1]), _m.radians(b[0])
+    dlat, dlon = lat2 - lat1, lon2 - lon1
+    x = _m.sin(dlat / 2) ** 2 + _m.cos(lat1) * _m.cos(lat2) * _m.sin(dlon / 2) ** 2
+    return 2 * 6371000 * _m.asin(_m.sqrt(x))
+
+
 app = FastAPI(
     title="Train Tracking Algeria API",
     version="0.10.0",
@@ -636,15 +645,49 @@ def stations_geojson() -> dict:
 
 @app.get("/map/railway-segments.geojson")
 def railway_segments_geojson() -> dict:
-    """LineString features derived from reference stations per line.
-    Production: replace body with PostGIS ST_AsGeoJSON(railway_segments.geometry).
+    """LineString features per suburban line.
+    Real surveyed OSM track geometry (railway_segments table) is used when
+    available; otherwise falls back to chords between reference stations.
     """
+    # real surveyed geometry from the database
     by_line: dict[str, list] = {}
+    if getattr(store, "railway_segments", None):
+        for coords, meta in zip(store.railway_segments, store.railway_segment_meta):
+            if coords and len(coords) >= 2:
+                by_line.setdefault(str(meta.get("line_id", "")), []).append(coords)
+    if by_line:
+        features = []
+        for line_id, segs in by_line.items():
+            if not line_id:
+                continue
+            coords: list = []
+            for seg in segs:
+                if coords and seg and haversine(coords[-1], seg[0]) < 3000:
+                    coords = coords + seg[1:]
+                elif coords:
+                    coords = coords + seg
+                else:
+                    coords = list(seg)
+            if len(coords) >= 2:
+                features.append({
+                    "type": "Feature",
+                    "geometry": {"type": "LineString", "coordinates": coords},
+                    "properties": {
+                        "id": f"seg-{line_id}",
+                        "line_id": line_id,
+                        "source_kind": "OSM_REVIEWED",
+                        "distance_meters": round(sum(
+                            haversine(coords[i], coords[i + 1]) for i in range(len(coords) - 1)), 0),
+                    },
+                })
+        return {"type": "FeatureCollection", "features": features}
+    # fallback: chord between reference stations (not surveyed track)
+    by_station_line: dict[str, list] = {}
     for s in store.stations.values():
         for line in s.railway_line_ids:
-            by_line.setdefault(line, []).append(s)
+            by_station_line.setdefault(line, []).append(s)
     features = []
-    for line_id, sts in by_line.items():
+    for line_id, sts in by_station_line.items():
         ordered = sorted(sts, key=lambda x: (x.longitude, -x.latitude))
         if len(ordered) < 2:
             continue
@@ -665,15 +708,41 @@ def railway_segments_geojson() -> dict:
 
 @app.get("/map/network-lines")
 def network_lines() -> list[dict]:
-    """Provisional line polylines built from reference stations sharing a line id.
-    Replace with PostGIS railway_segments.geometry when available.
+    """Line polylines per suburban line — real OSM track geometry when
+    available, otherwise chords between reference stations.
     """
     by_line: dict[str, list] = {}
+    if getattr(store, "railway_segments", None):
+        for coords, meta in zip(store.railway_segments, store.railway_segment_meta):
+            if coords and len(coords) >= 2:
+                by_line.setdefault(str(meta.get("line_id", "")), []).append(coords)
+    if by_line:
+        out = []
+        for line_id, segs in by_line.items():
+            if not line_id:
+                continue
+            coords: list = []
+            for seg in segs:
+                if coords and seg and haversine(coords[-1], seg[0]) < 3000:
+                    coords = coords + seg[1:]
+                elif coords:
+                    coords = coords + seg
+                else:
+                    coords = list(seg)
+            if len(coords) >= 2:
+                out.append({
+                    "id": line_id,
+                    "type": "LineString",
+                    "coordinates": coords,
+                    "source_kind": "OSM_REVIEWED",
+                })
+        return out
+    by_station_line: dict[str, list] = {}
     for s in store.stations.values():
         for line in s.railway_line_ids:
-            by_line.setdefault(line, []).append(s)
+            by_station_line.setdefault(line, []).append(s)
     out = []
-    for line_id, sts in by_line.items():
+    for line_id, sts in by_station_line.items():
         ordered = sorted(sts, key=lambda x: (x.longitude, -x.latitude))
         out.append({
             "id": line_id,
