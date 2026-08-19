@@ -126,7 +126,8 @@ def health() -> dict[str, str]:
 
 @app.get("/version")
 def version() -> dict[str, str]:
-    return {"api": "0.10.0", "pipeline": "validate-aggregate-confidence-station-eta-wait", "storage": "memory-mvp"}
+    return {"api": "0.10.0", "pipeline": "validate-aggregate-confidence-station-eta-wait",
+            "storage": "postgres-postgis" if getattr(store, "active", False) else "memory-mvp"}
 
 
 @app.get("/admin/health")
