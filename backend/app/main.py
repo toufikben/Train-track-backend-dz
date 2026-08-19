@@ -163,19 +163,20 @@ def admin_importprobe():
         result["psycopg2_adapter_type"] = type(m2.PostgresStorePsycopg2).__name__
     except Exception:
         result["psycopg2_adapter_error"] = traceback.format_exc()
-    import traceback, psycopg2
-    from app.postgres_notes import database_url
-    try:
-        conn = psycopg2.connect(database_url(), connect_timeout=10)
-        conn.autocommit = True
-        cur = conn.cursor()
-        cur.execute("SELECT 1")
-        cur.execute("SELECT COUNT(*) FROM public.stations")
-        result["direct_ok"] = True
-        result["stations_count"] = cur.fetchone()[0]
-        conn.close()
-    except Exception:
-        result["direct_error"] = traceback.format_exc()
+    import socket
+    import traceback
+    result["socket_tests"] = {}
+    for host in ["aws-us-east-1.pooler.supabase.com", "aws-us-west-1.pooler.supabase.com",
+                 "aws-eu-west-1.pooler.supabase.com", "aws-eu-central-1.pooler.supabase.com",
+                 "aws-ap-southeast-1.pooler.supabase.com"]:
+        for port in (5432, 6543):
+            key = f"{host}:{port}"
+            try:
+                s = socket.create_connection((host, port), timeout=4)
+                result["socket_tests"][key] = "open"
+                s.close()
+            except Exception as e:
+                result["socket_tests"][key] = str(e)[:80]
     return result
 @app.get("/admin/pipcheck")
 def admin_pipcheck():
