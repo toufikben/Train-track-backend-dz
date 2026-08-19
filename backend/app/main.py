@@ -165,6 +165,7 @@ def admin_importprobe():
         result["psycopg2_adapter_error"] = traceback.format_exc()
     import inspect, app.store
     result["store_module_file"] = inspect.getfile(app.store)
+    result["store_has_psycopg2_fallback"] = "PostgresStorePsycopg2" in inspect.getsource(app.store)
     return result
 @app.get("/admin/pipcheck")
 def admin_pipcheck():
