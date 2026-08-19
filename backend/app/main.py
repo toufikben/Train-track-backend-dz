@@ -158,6 +158,13 @@ def admin_importprobe():
         result["store_active"] = getattr(store.store, "active", None)
     except Exception:
         result["store_error"] = traceback.format_exc()
+    try:
+        import app.postgres_store_psycopg2 as m2
+        result["psycopg2_adapter_type"] = type(m2.PostgresStorePsycopg2).__name__
+    except Exception:
+        result["psycopg2_adapter_error"] = traceback.format_exc()
+    import inspect, app.store
+    result["store_module_file"] = inspect.getfile(app.store)
     return result
 @app.get("/admin/pipcheck")
 def admin_pipcheck():
