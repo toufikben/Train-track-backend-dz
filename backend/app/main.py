@@ -139,6 +139,26 @@ def admin_health() -> dict:
     return health_snapshot(store)
 
 
+
+@app.get("/admin/importprobe")
+def admin_importprobe():
+    """Attempt psycopg2 import inside the running process and report exact error."""
+    import traceback
+    result = {}
+    try:
+        import psycopg2
+        result["import_ok"] = True
+        result["version"] = psycopg2.__version__
+    except Exception:
+        result["import_ok"] = False
+        result["error"] = traceback.format_exc()
+    try:
+        from app import store
+        result["store_type"] = type(store.store).__name__
+        result["store_active"] = getattr(store.store, "active", None)
+    except Exception:
+        result["store_error"] = traceback.format_exc()
+    return result
 @app.get("/admin/pipcheck")
 def admin_pipcheck():
     """What psycopg-related packages are installed at runtime."""
