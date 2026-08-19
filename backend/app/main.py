@@ -139,6 +139,25 @@ def admin_health() -> dict:
     return health_snapshot(store)
 
 
+def _sqlproxy_live_probe() -> str:
+    """One-off runtime probe of the sql-proxy Edge Function (for diagnostics)."""
+    try:
+        import requests as _r
+        url = os.environ.get("SQLPROXY_URL") or ""
+        key = os.environ.get("SQLPROXY_KEY") or ""
+        if not url or not key:
+            return "missing_env"
+        resp = _r.post(url, headers={"Content-Type": "application/json", "X-Api-Key": key},
+                       json={"query": "SELECT 1 AS one"}, timeout=15)
+        try:
+            body = resp.json()
+        except Exception:
+            body = resp.text[:200]
+        return f"http={resp.status_code} body={body!r}"
+    except Exception as exc:  # noqa: BLE001
+        return f"ERROR: {exc}"
+
+
 @app.get("/admin/diag")
 def admin_diag() -> dict:
     """Boot diagnostics: env vars (keys only), psycopg status, store active."""
@@ -149,6 +168,8 @@ def admin_diag() -> dict:
         "psycopg_version": getattr(store, "_PSYCOPG_VERSION", "?"),
         "sqlproxy_url_set": bool(os.environ.get("SQLPROXY_URL")),
         "sqlproxy_active": bool(getattr(store, "_active", None) and type(store).__name__ == "PostgresStoreSqlproxy"),
+        "sqlproxy_key_len": len(os.environ.get("SQLPROXY_KEY") or ""),
+        "sqlproxy_live_probe": _sqlproxy_live_probe(),
         "store_active": bool(getattr(store, "active", False)),
         "python": os.sys.version,
         "env_keys": sorted(k for k in os.environ if "URL" in k.upper()),
