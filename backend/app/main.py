@@ -139,6 +139,16 @@ def admin_health() -> dict:
     return health_snapshot(store)
 
 
+@app.get("/admin/pipcheck")
+def admin_pipcheck():
+    """What psycopg-related packages are installed at runtime."""
+    import subprocess
+    try:
+        out = subprocess.check_output(["pip3", "list"], text=True)
+    except Exception as exc:
+        out = str(exc)
+    return {"installed": [l for l in out.splitlines() if "psycopg" in l.lower() or "Pyscopg" in l]}
+
 @app.get("/admin/diag")
 def admin_diag() -> dict:
     """Boot diagnostics: env vars (keys only), psycopg status, store active."""
