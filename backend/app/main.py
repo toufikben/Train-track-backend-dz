@@ -163,9 +163,14 @@ def admin_importprobe():
         result["psycopg2_adapter_type"] = type(m2.PostgresStorePsycopg2).__name__
     except Exception:
         result["psycopg2_adapter_error"] = traceback.format_exc()
-    import inspect, app.store
-    result["store_module_file"] = inspect.getfile(app.store)
-    result["store_has_psycopg2_fallback"] = "PostgresStorePsycopg2" in inspect.getsource(app.store)
+    import traceback, app.postgres_store_psycopg2 as m2
+    try:
+        a = m2.PostgresStorePsycopg2()
+        result["adapter_active"] = bool(a.active)
+        result["adapter_stations"] = len(a.stations)
+        result["adapter_segments"] = len(a.railway_segments)
+    except Exception:
+        result["adapter_error"] = traceback.format_exc()
     return result
 @app.get("/admin/pipcheck")
 def admin_pipcheck():
