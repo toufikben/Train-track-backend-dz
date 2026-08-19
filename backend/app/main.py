@@ -33,12 +33,21 @@ from app.ttl import evict_stale, should_publish
 from app.admin_health import health_snapshot
 
 # Eager-load reference stations (startup event may be deferred under TestClient)
-_REF = ROOT.parent / "data" / "reference" / "stations_suburban_provisional.json"
-_SEG = ROOT.parent / "data" / "reference" / "railway_segments_provisional.geojson"
+_CANDIDATES = [
+    ROOT.parent / "data" / "reference",
+    ROOT / "data" / "reference",
+    ROOT.parent / "backend" / "data" / "reference",
+    Path.cwd() / "data" / "reference",
+    Path.cwd() / "backend" / "data" / "reference",
+]
+_REF = next((p / "stations_suburban_provisional.json" for p in _CANDIDATES
+             if (p / "stations_suburban_provisional.json").exists()), None)
+_SEG = next((p / "railway_segments_provisional.geojson" for p in _CANDIDATES
+             if (p / "railway_segments_provisional.geojson").exists()), None)
 _pg_active = getattr(store, "active", False)
-if _REF.exists() and not store.stations and not _pg_active:
+if _REF is not None and not store.stations and not _pg_active:
     store.load_reference_stations(str(_REF))
-if _SEG.exists() and not store.railway_segments and not _pg_active:
+if _SEG is not None and not store.railway_segments and not _pg_active:
     store.load_railway_segments_geojson(str(_SEG))
 
 app = FastAPI(
@@ -93,14 +102,14 @@ async def startup() -> None:
         hub.bind_loop(asyncio.get_running_loop())
     except RuntimeError:
         pass
-    ref = ROOT.parent / "data" / "reference" / "stations_suburban_provisional.json"
-    if ref.exists() and not getattr(store, "active", False):
+    ref = _REF
+    if ref is not None and not getattr(store, "active", False):
         n = store.load_reference_stations(str(ref))
         print(f"Loaded {n} REFERENCE stations from file (not live tracking)")
     elif getattr(store, "active", False):
         print(f"Loaded {len(store.stations)} REFERENCE stations from Postgres (not live tracking)")
-    seg = ROOT.parent / "data" / "reference" / "railway_segments_provisional.geojson"
-    if seg.exists() and not getattr(store, "active", False):
+    seg = _SEG
+    if seg is not None and not getattr(store, "active", False):
         ns = store.load_railway_segments_geojson(str(seg))
         print(f"Loaded {ns} railway segment polylines from file")
     elif getattr(store, "active", False):
