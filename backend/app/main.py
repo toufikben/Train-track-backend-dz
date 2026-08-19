@@ -142,9 +142,10 @@ def admin_health() -> dict:
 def _sqlproxy_live_probe() -> str:
     """One-off runtime probe of the sql-proxy Edge Function (for diagnostics)."""
     try:
+        import os as _os
         import requests as _r
-        url = os.environ.get("SQLPROXY_URL") or ""
-        key = os.environ.get("SQLPROXY_KEY") or ""
+        url = _os.environ.get("SQLPROXY_URL") or ""
+        key = _os.environ.get("SQLPROXY_KEY") or ""
         if not url or not key:
             return "missing_env"
         resp = _r.post(url, headers={"Content-Type": "application/json", "X-Api-Key": key},
