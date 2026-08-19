@@ -166,6 +166,15 @@ def admin_importprobe():
     import socket, traceback
     import psycopg2
     ref = "wncxfbtjsmrvadgnmots"
+    result["direct_host"] = {}
+    for port in (5432, 6543, 443):
+        try:
+            s = socket.create_connection(("db.wncxfbtjsmrvadgnmots.supabase.co", port), timeout=6)
+            result["direct_host"][str(port)] = "open"
+            s.close()
+        except Exception as e:
+            result["direct_host"][str(port)] = str(e)[:80]
+
     password = "o4qnQpOE5yzBTt1J"
     user = f"postgres.{ref}"
     result["pooler_auth"] = {}
