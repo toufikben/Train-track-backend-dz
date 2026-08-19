@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-WORKDIR /app
+WORKDIR /app/backend
 
 RUN apt-get update -qq && \
     apt-get install -y -qq --no-install-recommends libpq5 && \
@@ -9,7 +9,8 @@ RUN apt-get update -qq && \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY backend/ ./backend/
+COPY requirements.txt ./
 
 ENV PYTHONPATH=/app
 
