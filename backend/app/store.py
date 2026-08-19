@@ -165,4 +165,20 @@ if _pg.active:
     store.load_reference_stations()
     print("postgres_store: ACTIVE (DATABASE_URL/SUPABASE_DB_URL set)")
 else:
-    print("postgres_store: INACTIVE — using in-memory store")
+    # Third fallback: Supabase sql-proxy Edge Function (HTTPS-only path,
+    # works even when direct Postgres TCP is unreachable, e.g. IPv6-only
+    # Supabase endpoints from hosts like Render).
+    try:
+        from .postgres_store_sqlproxy import PostgresStoreSqlproxy
+        _px = PostgresStoreSqlproxy()
+        if _px.active:
+            _pg = _px
+            store = _px
+            store.load_reference_stations()
+            print("postgres_store: ACTIVE (sql-proxy Edge Function path)")
+        else:
+            _px = None
+            print("postgres_store: INACTIVE — using in-memory store")
+    except Exception:  # noqa: BLE001
+        _px = None
+        print("postgres_store: INACTIVE — using in-memory store")

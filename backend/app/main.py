@@ -139,84 +139,6 @@ def admin_health() -> dict:
     return health_snapshot(store)
 
 
-
-@app.get("/admin/importprobe")
-def admin_importprobe():
-    """Attempt psycopg2 import inside the running process and report exact error."""
-    import traceback
-    result = {}
-    try:
-        import psycopg2
-        result["import_ok"] = True
-        result["version"] = psycopg2.__version__
-    except Exception:
-        result["import_ok"] = False
-        result["error"] = traceback.format_exc()
-    try:
-        from app import store
-        result["store_type"] = type(store.store).__name__
-        result["store_active"] = getattr(store.store, "active", None)
-    except Exception:
-        result["store_error"] = traceback.format_exc()
-    try:
-        import app.postgres_store_psycopg2 as m2
-        result["psycopg2_adapter_type"] = type(m2.PostgresStorePsycopg2).__name__
-    except Exception:
-        result["psycopg2_adapter_error"] = traceback.format_exc()
-    import socket, traceback
-    import psycopg2
-    ref = "wncxfbtjsmrvadgnmots"
-    result["direct_host"] = {}
-    for port in (5432, 6543, 443):
-        try:
-            s = socket.create_connection(("db.wncxfbtjsmrvadgnmots.supabase.co", port), timeout=6)
-            result["direct_host"][str(port)] = "open"
-            s.close()
-        except Exception as e:
-            result["direct_host"][str(port)] = str(e)[:80]
-
-    password = "o4qnQpOE5yzBTt1J"
-    user = f"postgres.{ref}"
-    result["pooler_auth"] = {}
-    for host in ["aws-0-eu-west-3.pooler.supabase.com", "aws-0-eu-west-1.pooler.supabase.com",
-                 "aws-0-us-east-1.pooler.supabase.com", "aws-0-us-west-1.pooler.supabase.com"]:
-        for port in (5432, 6543):
-            key = f"{host}:{port}"
-            url = f"postgresql://{user}:{password}@{host}:{port}/postgres?connect_timeout=8&sslmode=require"
-            try:
-                conn = psycopg2.connect(url, connect_timeout=8)
-                conn.autocommit = True
-                cur = conn.cursor()
-                cur.execute("SELECT COUNT(*) FROM public.stations")
-                n = cur.fetchone()[0]
-                result["pooler_auth"][key] = {"ok": True, "stations": n}
-                conn.close()
-            except Exception as e:
-                result["pooler_auth"][key] = {"ok": False, "error": str(e)[:120]}
-    result["socket_tests"] = {}
-    for host in ["aws-0-us-east-1.pooler.supabase.com", "aws-0-us-west-1.pooler.supabase.com",
-                 "aws-0-eu-west-1.pooler.supabase.com", "aws-0-eu-central-1.pooler.supabase.com",
-                 "aws-0-ap-southeast-1.pooler.supabase.com", "aws-0-ap-northeast-1.pooler.supabase.com",
-                 "aws-0-sa-east-1.pooler.supabase.com", "aws-0-ca-central-1.pooler.supabase.com"]:
-        for port in (5432, 6543):
-            key = f"{host}:{port}"
-            try:
-                s = socket.create_connection((host, port), timeout=4)
-                result["socket_tests"][key] = "open"
-                s.close()
-            except Exception as e:
-                result["socket_tests"][key] = str(e)[:80]
-    return result
-@app.get("/admin/pipcheck")
-def admin_pipcheck():
-    """What psycopg-related packages are installed at runtime."""
-    import subprocess
-    try:
-        out = subprocess.check_output(["pip3", "list"], text=True)
-    except Exception as exc:
-        out = str(exc)
-    return {"installed": [l for l in out.splitlines() if "psycopg" in l.lower() or "Pyscopg" in l]}
-
 @app.get("/admin/diag")
 def admin_diag() -> dict:
     """Boot diagnostics: env vars (keys only), psycopg status, store active."""
@@ -225,7 +147,8 @@ def admin_diag() -> dict:
         "database_url_set": bool(os.environ.get("DATABASE_URL") or os.environ.get("SUPABASE_DB_URL")),
         "supabase_pooler_url_set": bool(os.environ.get("SUPABASE_POOLER_URL")),
         "psycopg_version": getattr(store, "_PSYCOPG_VERSION", "?"),
-        "psycopg2_version": getattr(store, "_PSYCOPG2_VERSION", "?"),
+        "sqlproxy_url_set": bool(os.environ.get("SQLPROXY_URL")),
+        "sqlproxy_active": bool(getattr(store, "_active", None) and type(store).__name__ == "PostgresStoreSqlproxy"),
         "store_active": bool(getattr(store, "active", False)),
         "python": os.sys.version,
         "env_keys": sorted(k for k in os.environ if "URL" in k.upper()),
