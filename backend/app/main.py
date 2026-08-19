@@ -163,8 +163,28 @@ def admin_importprobe():
         result["psycopg2_adapter_type"] = type(m2.PostgresStorePsycopg2).__name__
     except Exception:
         result["psycopg2_adapter_error"] = traceback.format_exc()
-    import socket
-    import traceback
+    import socket, traceback
+    import psycopg2
+    ref = "wncxfbtjsmrvadgnmots"
+    password = "o4qnQpOE5yzBTt1J"
+    user = f"postgres.{ref}"
+    result["pooler_auth"] = {}
+    for host in ["aws-0-us-east-1.pooler.supabase.com", "aws-0-us-west-1.pooler.supabase.com",
+                 "aws-0-eu-west-1.pooler.supabase.com", "aws-0-eu-central-1.pooler.supabase.com",
+                 "aws-0-ap-southeast-1.pooler.supabase.com"]:
+        for port in (5432, 6543):
+            key = f"{host}:{port}"
+            url = f"postgresql://{user}:{password}@{host}:{port}/postgres?connect_timeout=8&sslmode=require"
+            try:
+                conn = psycopg2.connect(url, connect_timeout=8)
+                conn.autocommit = True
+                cur = conn.cursor()
+                cur.execute("SELECT COUNT(*) FROM public.stations")
+                n = cur.fetchone()[0]
+                result["pooler_auth"][key] = {"ok": True, "stations": n}
+                conn.close()
+            except Exception as e:
+                result["pooler_auth"][key] = {"ok": False, "error": str(e)[:120]}
     result["socket_tests"] = {}
     for host in ["aws-0-us-east-1.pooler.supabase.com", "aws-0-us-west-1.pooler.supabase.com",
                  "aws-0-eu-west-1.pooler.supabase.com", "aws-0-eu-central-1.pooler.supabase.com",
