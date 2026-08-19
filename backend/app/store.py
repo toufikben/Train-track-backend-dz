@@ -150,6 +150,16 @@ store = MemoryStore()
 from .postgres_store import PostgresStore
 
 _pg = PostgresStore()
+if not _pg.active:
+    # Fallback driver for runtimes where psycopg v3 has no wheels
+    # (e.g. Python 3.14): psycopg2-binary provides cp314 wheels.
+    try:
+        from .postgres_store_psycopg2 import PostgresStorePsycopg2
+        _pg2 = PostgresStorePsycopg2()
+        if _pg2.active:
+            _pg = _pg2
+    except Exception:  # noqa: BLE001
+        _pg2 = None
 if _pg.active:
     store = _pg                    # write-through Postgres adapter
     store.load_reference_stations()
