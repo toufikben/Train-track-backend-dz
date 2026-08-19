@@ -1,0 +1,205 @@
+{
+  "type": "FeatureCollection",
+  "not_live_tracking": true,
+  "source": "derived_from_stations_suburban_provisional",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "seg-line-suburb-zeralda",
+        "line_id": "line-suburb-zeralda",
+        "source_kind": "REFERENCE_NETWORK_DERIVED",
+        "note": "Replace with surveyed centerline when available; do not treat as official SNTF geometry"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            2.842,
+            36.709
+          ],
+          [
+            2.872,
+            36.693
+          ],
+          [
+            2.898,
+            36.672
+          ],
+          [
+            2.949,
+            36.657
+          ],
+          [
+            3.003,
+            36.648
+          ],
+          [
+            3.049,
+            36.671
+          ],
+          [
+            3.056,
+            36.7698
+          ],
+          [
+            3.0645,
+            36.757
+          ],
+          [
+            3.0805,
+            36.6975
+          ],
+          [
+            3.0905,
+            36.7445
+          ],
+          [
+            3.101,
+            36.702
+          ],
+          [
+            3.109,
+            36.736
+          ],
+          [
+            3.1328,
+            36.7212
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "seg-line-suburb-thenia",
+        "line_id": "line-suburb-thenia",
+        "source_kind": "REFERENCE_NETWORK_DERIVED",
+        "note": "Replace with surveyed centerline when available; do not treat as official SNTF geometry"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            3.056,
+            36.7698
+          ],
+          [
+            3.0645,
+            36.757
+          ],
+          [
+            3.0905,
+            36.7445
+          ],
+          [
+            3.109,
+            36.736
+          ],
+          [
+            3.1328,
+            36.7212
+          ],
+          [
+            3.163,
+            36.712
+          ],
+          [
+            3.193,
+            36.716
+          ],
+          [
+            3.22,
+            36.713
+          ],
+          [
+            3.284,
+            36.734
+          ],
+          [
+            3.344,
+            36.738
+          ],
+          [
+            3.411,
+            36.731
+          ],
+          [
+            3.447,
+            36.749
+          ],
+          [
+            3.477,
+            36.766
+          ],
+          [
+            3.557,
+            36.725
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "seg-line-suburb-elaffroun",
+        "line_id": "line-suburb-elaffroun",
+        "source_kind": "REFERENCE_NETWORK_DERIVED",
+        "note": "Replace with surveyed centerline when available; do not treat as official SNTF geometry"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            2.6288,
+            36.4678
+          ],
+          [
+            2.83,
+            36.48
+          ],
+          [
+            2.912,
+            36.574
+          ],
+          [
+            3.003,
+            36.648
+          ],
+          [
+            3.049,
+            36.671
+          ],
+          [
+            3.056,
+            36.7698
+          ],
+          [
+            3.0645,
+            36.757
+          ],
+          [
+            3.0805,
+            36.6975
+          ],
+          [
+            3.0905,
+            36.7445
+          ],
+          [
+            3.101,
+            36.702
+          ],
+          [
+            3.109,
+            36.736
+          ],
+          [
+            3.1328,
+            36.7212
+          ]
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,303 @@
+{
+  "dataset": "algeria_suburban_stations_provisional",
+  "source_kind": "REFERENCE_NETWORK",
+  "not_live_tracking": true,
+  "disclaimer_ar": "إحداثيات شبكة مرجعية مؤقتة للتمهيد. ليست مواقع قطارات حية. يجب التحقق من المصدر الرسمي عند التوفر.",
+  "disclaimer_en": "Provisional network anchors for bootstrap. NOT live train positions. Replace with official GIS when available.",
+  "source_notes": [
+    "Station names aligned with published suburban axes (Alger–Thénia, Zéralda, El Affroun) as cited in project research notes.",
+    "Coordinates are approximate public map anchors for development; mark as provisional in data_sources."
+  ],
+  "as_of": "2026-08-19",
+  "stations": [
+    {
+      "id": "st-aga",
+      "name_ar": "الجزائر العاصمة (آغا)",
+      "name_fr": "Alger Agha",
+      "name_en": "Algiers Agha",
+      "lat": 36.7698,
+      "lon": 3.056,
+      "lines": [
+        "line-suburb-zeralda",
+        "line-suburb-thenia",
+        "line-suburb-elaffroun"
+      ]
+    },
+    {
+      "id": "st-ateliers",
+      "name_ar": "الورشات",
+      "name_fr": "Les Ateliers",
+      "name_en": "Les Ateliers",
+      "lat": 36.757,
+      "lon": 3.0645,
+      "lines": [
+        "line-suburb-zeralda",
+        "line-suburb-thenia",
+        "line-suburb-elaffroun"
+      ]
+    },
+    {
+      "id": "st-hdey",
+      "name_ar": "حسين داي",
+      "name_fr": "Hussein Dey",
+      "name_en": "Hussein Dey",
+      "lat": 36.7445,
+      "lon": 3.0905,
+      "lines": [
+        "line-suburb-zeralda",
+        "line-suburb-thenia",
+        "line-suburb-elaffroun"
+      ]
+    },
+    {
+      "id": "st-caroubier",
+      "name_ar": "الخروبة",
+      "name_fr": "Caroubier",
+      "name_en": "Caroubier",
+      "lat": 36.736,
+      "lon": 3.109,
+      "lines": [
+        "line-suburb-zeralda",
+        "line-suburb-thenia",
+        "line-suburb-elaffroun"
+      ]
+    },
+    {
+      "id": "st-elhar",
+      "name_ar": "الحراش",
+      "name_fr": "El Harrach",
+      "name_en": "El Harrach",
+      "lat": 36.7212,
+      "lon": 3.1328,
+      "lines": [
+        "line-suburb-zeralda",
+        "line-suburb-thenia",
+        "line-suburb-elaffroun"
+      ]
+    },
+    {
+      "id": "st-gue",
+      "name_ar": "جسر قسنطينة",
+      "name_fr": "Gué de Constantine",
+      "name_en": "Gue de Constantine",
+      "lat": 36.702,
+      "lon": 3.101,
+      "lines": [
+        "line-suburb-zeralda",
+        "line-suburb-elaffroun"
+      ]
+    },
+    {
+      "id": "st-naadja",
+      "name_ar": "عين النعجة",
+      "name_fr": "Ain Naadja",
+      "name_en": "Ain Naadja",
+      "lat": 36.6975,
+      "lon": 3.0805,
+      "lines": [
+        "line-suburb-zeralda",
+        "line-suburb-elaffroun"
+      ]
+    },
+    {
+      "id": "st-babaali",
+      "name_ar": "بابا علي",
+      "name_fr": "Baba Ali",
+      "name_en": "Baba Ali",
+      "lat": 36.671,
+      "lon": 3.049,
+      "lines": [
+        "line-suburb-zeralda",
+        "line-suburb-elaffroun"
+      ]
+    },
+    {
+      "id": "st-birtouta",
+      "name_ar": "بئر توتة",
+      "name_fr": "Birtouta",
+      "name_en": "Birtouta",
+      "lat": 36.648,
+      "lon": 3.003,
+      "lines": [
+        "line-suburb-zeralda",
+        "line-suburb-elaffroun"
+      ]
+    },
+    {
+      "id": "st-tessala",
+      "name_ar": "تسالة المرجة",
+      "name_fr": "Tessala El Merdja",
+      "name_en": "Tessala El Merdja",
+      "lat": 36.657,
+      "lon": 2.949,
+      "lines": [
+        "line-suburb-zeralda"
+      ]
+    },
+    {
+      "id": "st-sidi-univ",
+      "name_ar": "سيدي عبد الله (الجامعة)",
+      "name_fr": "Sidi Abdellah Université",
+      "name_en": "Sidi Abdellah University",
+      "lat": 36.672,
+      "lon": 2.898,
+      "lines": [
+        "line-suburb-zeralda"
+      ]
+    },
+    {
+      "id": "st-sidi-abd",
+      "name_ar": "سيدي عبد الله",
+      "name_fr": "Sidi Abdellah",
+      "name_en": "Sidi Abdellah",
+      "lat": 36.693,
+      "lon": 2.872,
+      "lines": [
+        "line-suburb-zeralda"
+      ]
+    },
+    {
+      "id": "st-zeralda",
+      "name_ar": "زرالدة",
+      "name_fr": "Zéralda",
+      "name_en": "Zeralda",
+      "lat": 36.709,
+      "lon": 2.842,
+      "lines": [
+        "line-suburb-zeralda"
+      ]
+    },
+    {
+      "id": "st-ouedsmar",
+      "name_ar": "وادي السمار",
+      "name_fr": "Oued Smar",
+      "name_en": "Oued Smar",
+      "lat": 36.712,
+      "lon": 3.163,
+      "lines": [
+        "line-suburb-thenia"
+      ]
+    },
+    {
+      "id": "st-bazzouar",
+      "name_ar": "باب الزوار",
+      "name_fr": "Bab Ezzouar",
+      "name_en": "Bab Ezzouar",
+      "lat": 36.716,
+      "lon": 3.193,
+      "lines": [
+        "line-suburb-thenia"
+      ]
+    },
+    {
+      "id": "st-darbeida",
+      "name_ar": "الدار البيضاء",
+      "name_fr": "Dar El Beida",
+      "name_en": "Dar El Beida",
+      "lat": 36.713,
+      "lon": 3.22,
+      "lines": [
+        "line-suburb-thenia"
+      ]
+    },
+    {
+      "id": "st-rouiba",
+      "name_ar": "الرويبة",
+      "name_fr": "Rouiba",
+      "name_en": "Rouiba",
+      "lat": 36.734,
+      "lon": 3.284,
+      "lines": [
+        "line-suburb-thenia"
+      ]
+    },
+    {
+      "id": "st-reghaia",
+      "name_ar": "الرغاية",
+      "name_fr": "Reghaia",
+      "name_en": "Reghaia",
+      "lat": 36.738,
+      "lon": 3.344,
+      "lines": [
+        "line-suburb-thenia"
+      ]
+    },
+    {
+      "id": "st-boudouaou",
+      "name_ar": "بودواو",
+      "name_fr": "Boudouaou",
+      "name_en": "Boudouaou",
+      "lat": 36.731,
+      "lon": 3.411,
+      "lines": [
+        "line-suburb-thenia"
+      ]
+    },
+    {
+      "id": "st-corso",
+      "name_ar": "قورصو",
+      "name_fr": "Corso",
+      "name_en": "Corso",
+      "lat": 36.749,
+      "lon": 3.447,
+      "lines": [
+        "line-suburb-thenia"
+      ]
+    },
+    {
+      "id": "st-boumerdes",
+      "name_ar": "بومرداس",
+      "name_fr": "Boumerdes",
+      "name_en": "Boumerdes",
+      "lat": 36.766,
+      "lon": 3.477,
+      "lines": [
+        "line-suburb-thenia"
+      ]
+    },
+    {
+      "id": "st-thenia",
+      "name_ar": "الثنية",
+      "name_fr": "Thénia",
+      "name_en": "Thenia",
+      "lat": 36.725,
+      "lon": 3.557,
+      "lines": [
+        "line-suburb-thenia"
+      ]
+    },
+    {
+      "id": "st-boufarik",
+      "name_ar": "بوفاريك",
+      "name_fr": "Boufarik",
+      "name_en": "Boufarik",
+      "lat": 36.574,
+      "lon": 2.912,
+      "lines": [
+        "line-suburb-elaffroun"
+      ]
+    },
+    {
+      "id": "st-blida",
+      "name_ar": "البليدة",
+      "name_fr": "Blida",
+      "name_en": "Blida",
+      "lat": 36.48,
+      "lon": 2.83,
+      "lines": [
+        "line-suburb-elaffroun"
+      ]
+    },
+    {
+      "id": "st-elaf",
+      "name_ar": "العفرون",
+      "name_fr": "El Affroun",
+      "name_en": "El Affroun",
+      "lat": 36.4678,
+      "lon": 2.6288,
+      "lines": [
+        "line-suburb-elaffroun"
+      ]
+    }
+  ]
+}
