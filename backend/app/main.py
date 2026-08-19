@@ -139,6 +139,20 @@ def admin_health() -> dict:
     return health_snapshot(store)
 
 
+@app.get("/admin/diag")
+def admin_diag() -> dict:
+    """Boot diagnostics: env vars (keys only), psycopg status, store active."""
+    import os
+    return {
+        "database_url_set": bool(os.environ.get("DATABASE_URL") or os.environ.get("SUPABASE_DB_URL")),
+        "supabase_pooler_url_set": bool(os.environ.get("SUPABASE_POOLER_URL")),
+        "psycopg_version": getattr(store, "_PSYCOPG_VERSION", "?"),
+        "store_active": bool(getattr(store, "active", False)),
+        "python": os.sys.version,
+        "env_keys": sorted(k for k in os.environ if "URL" in k.upper()),
+    }
+
+
 @app.get("/admin/dashboard", response_class=None)
 def admin_dashboard():
     from fastapi.responses import HTMLResponse

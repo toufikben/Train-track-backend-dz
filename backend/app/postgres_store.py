@@ -21,9 +21,12 @@ from .postgres_notes import database_url
 try:
     import psycopg  # noqa: F401
     from psycopg_pool import ConnectionPool
-except ImportError:  # pragma: no cover
+    _PSYCOPG_VERSION = getattr(psycopg, "__version__", "?")
+except Exception as exc:  # pragma: no cover
     psycopg = None  # adapter inactive without psycopg
     ConnectionPool = None
+    _PSYCOPG_VERSION = f"IMPORT_FAILED ({exc})"
+print(f"postgres_store: psycopg={_PSYCOPG_VERSION} DATABASE_URL={'set' if database_url() else 'NOT set'}")
 
 from .store import SessionRow, StationRow, TripStopRow, AggregateRow, utcnow
 from .ttl import DEFAULT_MAX_AGE_SECONDS
