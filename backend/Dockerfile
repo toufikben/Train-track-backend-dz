@@ -6,10 +6,10 @@ RUN apt-get update -qq && \
     apt-get install -y -qq --no-install-recommends libpq5 && \
     rm -rf /var/lib/apt/lists/*
 
-COPY backend/requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY backend/ .
+COPY . .
 
 ENV PYTHONPATH=/app/backend
 
