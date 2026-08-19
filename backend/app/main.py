@@ -147,6 +147,7 @@ def admin_diag() -> dict:
         "database_url_set": bool(os.environ.get("DATABASE_URL") or os.environ.get("SUPABASE_DB_URL")),
         "supabase_pooler_url_set": bool(os.environ.get("SUPABASE_POOLER_URL")),
         "psycopg_version": getattr(store, "_PSYCOPG_VERSION", "?"),
+        "psycopg2_version": getattr(store, "_PSYCOPG2_VERSION", "?"),
         "store_active": bool(getattr(store, "active", False)),
         "python": os.sys.version,
         "env_keys": sorted(k for k in os.environ if "URL" in k.upper()),
