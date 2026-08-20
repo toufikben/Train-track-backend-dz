@@ -92,6 +92,7 @@ class PostgresStoreSqlproxy:
         self.load_reference_stations()
         self.load_railway_segments()
         self._load_live_state()
+        self.load_trip_stops()
         print(f"postgres_store_sqlproxy: ACTIVE (stations={len(self.stations)})")
 
     # ---------- reference data ----------
@@ -279,6 +280,38 @@ class PostgresStoreSqlproxy:
                 self.aggregates.pop(tid, None)
         return removed
 
+    def load_trips_registry(self) -> int:
+        """Build the public trips index from real trip_stops rows (no fake data).
+
+        Each registered trip_id becomes a Trip shell carrying its line (derived
+        from the trip id prefix), train_id (the trip id itself), OUTBOUND
+        direction, and no scheduled times (the official SNTF local schedules we
+        have do not publish them)."""
+        if not self.active or not self.trip_stops:
+            return 0
+        with self._lock:
+            self.trips.clear()
+            for trip_id, stops in self.trip_stops.items():
+                if not stops:
+                    continue
+                first, last = min(stops, key=lambda s: s.sequence), max(stops, key=lambda s: s.sequence)
+                parts = trip_id.split("-")
+                # trip ids look like "zeralda-aga-1501" / "aga-elaffroun-1025"
+                line_id = "-".join(parts[:-1]) if len(parts) >= 3 else trip_id
+                self.trips[trip_id] = {
+                    "id": trip_id,
+                    "train_id": trip_id,
+                    "line_id": line_id,
+                    "direction": "OUTBOUND",
+                    "scheduled_departure": None,
+                    "scheduled_arrival": None,
+                    "status": "SCHEDULED",
+                    "stop_count": len(stops),
+                    "first_station_id": first.station_id,
+                    "last_station_id": last.station_id,
+                }
+        return len(self.trips)
+
     def load_trip_stops(self) -> int:
         """Restore all registered trip stops from Postgres into memory (survives restarts)."""
         if not self.active:
@@ -304,6 +337,8 @@ class PostgresStoreSqlproxy:
                         longitude=float(r["longitude"]),
                     )
                 )
+        # Rebuild the public trips index so GET /trips exposes the real schedule.
+        self.load_trips_registry()
         return len(self.trip_stops)
 
     def save_trip_stops(self, trip_id: str, rows: list[TripStopRow]) -> None:
