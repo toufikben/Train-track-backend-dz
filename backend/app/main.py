@@ -15,7 +15,7 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, HTMLResponse
 import asyncio
 import json
 from fastapi.middleware.cors import CORSMiddleware
@@ -200,9 +200,8 @@ def admin_diag() -> dict:
     }
 
 
-@app.get("/admin/dashboard", response_class=None)
-def admin_dashboard():
-    from fastapi.responses import HTMLResponse
+@app.get("/admin/dashboard", response_class=HTMLResponse)
+def admin_dashboard() -> HTMLResponse:
     snap = health_snapshot(store)
     rows = "".join(
         f"<tr><td>{t['trip_id']}</td><td>{t['train_id']}</td><td>{t['truth']}</td>"
@@ -276,8 +275,11 @@ def get_station(station_id: str) -> dict[str, Any]:
 # ─── Trips (empty until schedule/reference trips registered) ─────────────────
 
 @app.get("/trips")
-def get_trips() -> list[dict[str, Any]]:
-    return list(store.trips.values())
+def get_trips(line_id: str | None = Query(None)) -> list[dict[str, Any]]:
+    trips = list(store.trips.values())
+    if line_id:
+        trips = [t for t in trips if t.get("line_id") == line_id]
+    return trips
 
 
 @app.get("/trips/{trip_id}")
@@ -290,6 +292,8 @@ def get_trip(trip_id: str) -> dict[str, Any]:
 
 @app.get("/trips/{trip_id}/stops")
 def get_trip_stops(trip_id: str) -> list[dict[str, Any]]:
+    if trip_id not in store.trips:
+        raise HTTPException(404, "trip_not_found")
     stops = store.trip_stops.get(trip_id, [])
     return [
         {
