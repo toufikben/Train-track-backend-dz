@@ -17,6 +17,7 @@ from station_detection import (
     TripStopRef,
     detect as detect_station,
 )
+import math as _math
 from eta import EtaInput, StopGeo as EtaStop, estimate as estimate_eta
 from wait_decision import WaitInput, decide as decide_wait
 from route_match import min_distance_to_segments_m, route_match_score
@@ -195,6 +196,21 @@ def process_observation(
             for s in stops
         ] if stops else []
         if eta_stops:
+            # Step 25 — real observed speeds from consecutive accepted
+            # observations beat the phone's often-stale reported speed.
+            observed_speeds: list[float] = []
+            for i in range(len(validated) - 1):
+                newer, older = validated[i], validated[i + 1]
+                dt = newer.observed_at_epoch - older.observed_at_epoch
+                if dt <= 0:
+                    continue
+                d_lat = (newer.latitude - older.latitude) * 111_320.0
+                d_lon = (newer.longitude - older.longitude) * 111_320.0 * _math.cos(
+                    _math.radians((newer.latitude + older.latitude) / 2.0)
+                )
+                s = (d_lat * d_lat + d_lon * d_lon) ** 0.5 / dt
+                if 1.0 < s <= 40.0:
+                    observed_speeds.append(s)
             er = estimate_eta(
                 EtaInput(
                     latitude=agg.latitude,
@@ -204,7 +220,8 @@ def process_observation(
                     stops=eta_stops,
                     confidence=conf_level.value,
                     freshness=fresh.value,
-                )
+                ),
+                observed_speeds_mps=observed_speeds,
             )
             eta_station = er.station_id
             eta_min = er.eta_min_seconds

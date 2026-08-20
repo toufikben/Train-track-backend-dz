@@ -1,11 +1,12 @@
 """
-PHASE 8 — ETA Engine
+PHASE 8 — ETA Engine (Step 25 improvements)
 
 ETA is derived from:
 - current aggregated position
 - remaining trip stops (sequence after progress)
 - segment distances (haversine fallback if no PostGIS length)
-- validated speed (with floor/ceiling)
+- validated speed (with floor/ceiling; Step 25 prefers the median of real
+  observed consecutive speeds over the phone's often-stale reported speed)
 - optional dwell at intermediate stations
 - confidence / freshness degrade the reported range
 
@@ -14,6 +15,7 @@ Never invent ETA when position is UNKNOWN or confidence is UNKNOWN.
 from __future__ import annotations
 from dataclasses import dataclass
 from math import radians, sin, cos, atan2, sqrt
+from statistics import median
 from typing import Sequence
 
 
@@ -79,7 +81,31 @@ def _dwell_seconds(remaining: Sequence[StopGeo], exclude_final: bool = True) -> 
     return sum(s.dwell_seconds for s in stops)
 
 
-def estimate(x: EtaInput) -> EtaResult:
+def _effective_speed(x: EtaInput, observed_speeds_mps: Sequence[float] | None = None) -> float:
+    """Step 25 — speed truth chain.
+
+    Inside a moving train the phone's reported speed is frequently zero or
+    stale (GPS throttling / indoor). A list of real consecutive observed
+    speeds (derived by the pipeline from accepted observation pairs) is
+    more truthful: we take its median when available, otherwise fall back
+    to the aggregate speed or the nominal default.
+    """
+    if observed_speeds_mps:
+        real = [s for s in observed_speeds_mps if s is not None and s > 1.0]
+        if real:
+            raw_speed = median(real)
+        elif x.speed_mps is not None and x.speed_mps > 1.0:
+            raw_speed = x.speed_mps
+        else:
+            raw_speed = DEFAULT_SPEED_MPS
+    else:
+        raw_speed = x.speed_mps if x.speed_mps and x.speed_mps > 1.0 else DEFAULT_SPEED_MPS
+    return max(MIN_SPEED_MPS, min(MAX_SPEED_MPS, raw_speed))
+
+
+def estimate(x: EtaInput, observed_speeds_mps: Sequence[float] | None = None) -> EtaResult:
+    """`observed_speeds_mps` is optional and new in Step 25; callers that omit
+    it keep the previous behaviour exactly."""
     if x.confidence == "UNKNOWN" or x.freshness == "UNKNOWN":
         return EtaResult(None, None, None, None, "UNKNOWN", "insufficient_truth")
 
@@ -111,8 +137,7 @@ def estimate(x: EtaInput) -> EtaResult:
     distance = _path_distance_m(x.latitude, x.longitude, remaining)
     dwell = _dwell_seconds(remaining, exclude_final=True)
 
-    raw_speed = x.speed_mps if x.speed_mps and x.speed_mps > 1.0 else DEFAULT_SPEED_MPS
-    speed = max(MIN_SPEED_MPS, min(MAX_SPEED_MPS, raw_speed))
+    speed = _effective_speed(x, observed_speeds_mps)
 
     base = distance / speed + dwell
 

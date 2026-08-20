@@ -384,6 +384,41 @@ def get_trip_live(trip_id: str) -> dict[str, Any] | None:
     return _live_from_aggregate(a)
 
 
+def _line_order_rank(aggregates: dict) -> dict[str, int]:
+    """Step 25 — relative ordering of running trains on the same line.
+
+    Trains on the same line share the same ordered stop sequence, so a train
+    that has progressed farther (or arrives sooner at its next stop) is the
+    *leader* on that line. Ranking is derived purely from real live data:
+    trains with a real ETA first (ascending), then trains without ETA by
+    stop-sequence progress (most advanced first). Result is per-line: rank 1
+    means first/leader among same-line trains; None when no line is known.
+    """
+    indexed: list[tuple[str, dict]] = []
+    for train_id, a in aggregates.items():
+        if a.truth == "UNKNOWN":
+            continue
+        trip_meta = store.trips.get(a.train_id, {})
+        line_id = trip_meta.get("line_id")
+        eta_sec = a.eta_min_sec if a.eta_station_id and a.eta_min_sec is not None else None
+        progress = 0
+        stops = store.trip_stops.get(a.trip_id, [])
+        if stops:
+            seqs = [s.sequence for s in stops if s.station_id == a.next_station_id] if a.next_station_id else []
+            progress = max(seqs) if seqs else 0
+        indexed.append((train_id, {"line_id": line_id, "eta_sec": eta_sec, "progress": progress}))
+    ranked: dict[str, int] = {}
+    by_line: dict[str | None, list] = {}
+    for tid, info in indexed:
+        by_line.setdefault(info["line_id"], []).append((tid, info))
+    for _line_id, members in by_line.items():
+        with_eta = sorted([m for m in members if m[1]["eta_sec"] is not None], key=lambda m: m[1]["eta_sec"])
+        without_eta = sorted([m for m in members if m[1]["eta_sec"] is None], key=lambda m: -m[1]["progress"])
+        for i, (tid, _) in enumerate(with_eta + without_eta):
+            ranked[tid] = i + 1
+    return ranked
+
+
 @app.get("/trains")
 def get_trains() -> list[dict[str, Any]]:
     # Distinct train ids from active aggregates only
@@ -397,6 +432,10 @@ def get_trains() -> list[dict[str, Any]]:
             "line_id": store.trips.get(a.train_id, {}).get("line_id"),
             "status": "RUNNING",
         }
+    # Step 25 — same-line relative order (1 = leader on the line)
+    ranks = _line_order_rank(store.aggregates)
+    for entry in seen.values():
+        entry["line_order"] = ranks.get(entry["id"])
     return list(seen.values())
 
 
@@ -457,8 +496,9 @@ def nearby_trains(
             out.append({
                 "id": a.train_id,
                 "train_number": a.train_id,
-                "line_id": None,
+                "line_id": store.trips.get(a.train_id, {}).get("line_id"),
                 "status": "RUNNING",
+                "line_order": None,  # filled below
                 "direction": None,
                 "origin": None,
                 "destination": None,
@@ -470,6 +510,10 @@ def nearby_trains(
                 "speed": a.speed_mps,
                 "heading": a.heading_deg,
             })
+    # Step 25 — same-line relative order among nearby trains
+    ranks = _line_order_rank(store.aggregates)
+    for entry in out:
+        entry["line_order"] = ranks.get(entry["id"])
     return out
 
 
