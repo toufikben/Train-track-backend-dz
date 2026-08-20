@@ -315,8 +315,8 @@ class PostgresStoreSqlproxy:
                     # exists and it looks like "...1058-a".
                     if len(p) >= 4 and len(p[-1]) == 1 and p[-1].isalpha():
                         p = p[:-1]
-                    # Drop the numeric train number.
-                    if p and p[-1].isdigit():
+                    # Drop the train number — numeric (1501) or B-series (B501).
+                    if p and (p[-1].isdigit() or (p[-1].startswith("B") and p[-1][1:].isdigit())):
                         p = p[:-1]
                     return "-".join(p) if p else tid
                 raw_line = _route_prefix(trip_id)
