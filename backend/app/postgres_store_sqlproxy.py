@@ -171,7 +171,7 @@ class PostgresStoreSqlproxy:
             "INSERT INTO public.monitor_sessions "
             "(id, trip_id, train_id, anonymous_monitor_id, status, started_at, "
             "last_observation_at, ended_at) "
-            "VALUES ('%s','%s','%s',%s,'%s','%s',%s,%s) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s) "
             "ON CONFLICT (id) DO UPDATE SET "
             "status=EXCLUDED.status, last_observation_at=EXCLUDED.last_observation_at, "
             "ended_at=EXCLUDED.ended_at" % (
@@ -201,11 +201,11 @@ class PostgresStoreSqlproxy:
                 "(id, session_id, trip_id, train_id, latitude, longitude, "
                 "accuracy_m, speed_mps, heading_deg, observed_at, "
                 "accepted, rejection_reason, validation_score) "
-                "VALUES ('%s','%s','%s','%s',%s,%s,%s,%s,%s,'%s',%s,%s,%s) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
                 "ON CONFLICT (id) DO NOTHING" % (
                     _esc(row.id), _esc(row.session_id), _esc(row.trip_id), _esc(row.train_id),
                     row.latitude, row.longitude, row.accuracy,
-                    _q(row.speed), _q(row.heading), row.observed_at.isoformat(),
+                    _q(row.speed), _q(row.heading), _qt(row.observed_at),
                     "true" if row.accepted else "false",
                     _q(row.rejection_reason), row.validation_score,
                 ),
@@ -221,7 +221,7 @@ class PostgresStoreSqlproxy:
             return
         if row is None:
             _run_sql(
-                "DELETE FROM public.aggregated_train_positions WHERE trip_id = '%s'"
+                "DELETE FROM public.aggregated_train_positions WHERE trip_id = %s"
                 % _esc(trip_id), timeout=10,
             )
             with self._lock:
@@ -231,13 +231,13 @@ class PostgresStoreSqlproxy:
                 "source_count, next_station_id, next_station_name_ar, station_event, "
                 "eta_station_id, eta_min_sec, eta_max_sec, eta_confidence, "
                 "wait_decision, wait_reason_ar, last_observed_at, updated_at")
-        values = ("'%s','%s',%s,%s,'%s','%s','%s',%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'%s',now()" % (
+        values = ("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,now()" % (
             _esc(row.trip_id), _esc(row.train_id), row.latitude, row.longitude,
             _esc(row.truth), _esc(row.confidence), _esc(row.freshness), row.source_count,
             _q(row.next_station_id), _q(row.next_station_name_ar), _q(row.station_event),
             _q(row.eta_station_id), _q(row.eta_min_sec), _q(row.eta_max_sec),
-            _q(row.eta_confidence), _q(row.wait_decision), _q(row.wait_reason_ar),
-            row.last_observed_at.isoformat(),
+            _q(row.eta_confidence),             _q(row.wait_decision), _q(row.wait_reason_ar),
+            _qt(row.last_observed_at),
         ))
         update = ("train_id=EXCLUDED.train_id, latitude=EXCLUDED.latitude, "
                   "longitude=EXCLUDED.longitude, truth=EXCLUDED.truth, "
@@ -282,12 +282,12 @@ class PostgresStoreSqlproxy:
     def save_trip_stops(self, trip_id: str, rows: list[TripStopRow]) -> None:
         if not self.active:
             return
-        _run_sql("DELETE FROM public.trip_stops WHERE trip_id = '%s'" % _esc(trip_id), timeout=15)
+        _run_sql("DELETE FROM public.trip_stops WHERE trip_id = %s" % _esc(trip_id), timeout=15)
         for r in rows:
             _run_sql(
                 "INSERT INTO public.trip_stops "
                 "(trip_id, station_id, station_name, sequence, latitude, longitude) "
-                "VALUES ('%s','%s','%s',%s,%s,%s)" % (
+                "VALUES (%s,%s,%s,%s,%s,%s)" % (
                     _esc(trip_id), _esc(r.station_id), _esc(r.station_name),
                     r.sequence, r.latitude, r.longitude,
                 ),
