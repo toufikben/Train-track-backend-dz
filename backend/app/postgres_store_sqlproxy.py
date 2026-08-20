@@ -279,6 +279,33 @@ class PostgresStoreSqlproxy:
                 self.aggregates.pop(tid, None)
         return removed
 
+    def load_trip_stops(self) -> int:
+        """Restore all registered trip stops from Postgres into memory (survives restarts)."""
+        if not self.active:
+            return 0
+        try:
+            rows = _run_sql(
+                "SELECT trip_id, station_id, station_name, sequence, "
+                "latitude, longitude FROM public.trip_stops ORDER BY trip_id, sequence"
+            )
+        except RuntimeError:
+            return 0
+        if not rows:
+            return 0
+        with self._lock:
+            self.trip_stops.clear()
+            for r in rows:
+                self.trip_stops.setdefault(str(r["trip_id"]), []).append(
+                    TripStopRow(
+                        station_id=str(r["station_id"]),
+                        station_name=str(r["station_name"]),
+                        sequence=int(r["sequence"]),
+                        latitude=float(r["latitude"]),
+                        longitude=float(r["longitude"]),
+                    )
+                )
+        return len(self.trip_stops)
+
     def save_trip_stops(self, trip_id: str, rows: list[TripStopRow]) -> None:
         if not self.active:
             return

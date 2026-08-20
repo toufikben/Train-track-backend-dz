@@ -124,6 +124,8 @@ async def startup() -> None:
     elif getattr(store, "active", False):
         ns = store.load_railway_segments()
         print(f"Loaded {ns} railway segment polylines from PostGIS")
+        nt = store.load_trip_stops()
+        print(f"Loaded {nt} registered trips from Postgres")
     else:
         print("No reference station file found — stations list empty")
 
@@ -176,7 +178,8 @@ def admin_refresh_reference() -> dict:
     if getattr(store, "active", False):
         n_stations = store.load_reference_stations()
         n_segments = store.load_railway_segments()
-    return {"stations": n_stations, "railway_segments": n_segments}
+        n_trips = store.load_trip_stops()
+    return {"stations": n_stations, "railway_segments": n_segments, "trip_stops": n_trips}
 
 
 @app.get("/admin/diag")
