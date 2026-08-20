@@ -422,33 +422,41 @@ def _line_order_rank(aggregates: dict) -> dict[str, int]:
 @app.get("/trains")
 def get_trains() -> list[dict[str, Any]]:
     # Distinct train ids from active aggregates only
+    if getattr(store, "evict_stale_db", None):
+        store.evict_stale_db()
+    if getattr(store, "evict_stale_live", None):
+        store.evict_stale_live()
+    evict_stale(store)
+    # Distinct train ids from active aggregates only — full live payload
+    # (position, ETA, next station) restored via _live_from_aggregate so the
+    # map and alerts see real data. Kept per-train (not per-aggregate) and
+    # ordered by last observation.
     seen = {}
     for a in store.aggregates.values():
         if a.truth == "UNKNOWN":
             continue
-        seen[a.train_id] = {
-            "id": a.train_id,
-            "train_number": a.train_id,
-            "line_id": store.trips.get(a.train_id, {}).get("line_id"),
-            "status": "RUNNING",
-        }
+        payload = _live_from_aggregate(a)
+        payload["id"] = a.train_id
+        # Keep the freshest aggregate per train id
+        if a.train_id not in seen or a.last_observed_at > seen[a.train_id]["_at"]:
+            seen[a.train_id] = (payload, a.last_observed_at)
     # Step 25 — same-line relative order (1 = leader on the line)
     ranks = _line_order_rank(store.aggregates)
-    for entry in seen.values():
-        entry["line_order"] = ranks.get(entry["id"])
-    return list(seen.values())
+    out = []
+    for payload, _at in sorted(seen.values(), key=lambda v: v[1], reverse=True):
+        payload["line_order"] = ranks.get(payload["id"])
+        out.append(payload)
+    return out
 
 
 @app.get("/trains/{train_id}")
 def get_train(train_id: str) -> dict[str, Any]:
     for a in store.aggregates.values():
         if a.train_id == train_id and a.truth != "UNKNOWN":
-            return {
-                "id": train_id,
-                "train_number": train_id,
-                "line_id": store.trips.get(a.train_id, {}).get("line_id"),
-                "status": "RUNNING",
-            }
+            payload = _live_from_aggregate(a)
+            payload["id"] = train_id
+            payload["line_order"] = _line_order_rank(store.aggregates).get(train_id)
+            return payload
     raise HTTPException(404, "train_not_found")
 
 
@@ -493,23 +501,10 @@ def nearby_trains(
             continue
         d = dist_m(lat, lon, a.latitude, a.longitude)
         if d <= radius:
-            out.append({
-                "id": a.train_id,
-                "train_number": a.train_id,
-                "line_id": store.trips.get(a.train_id, {}).get("line_id"),
-                "status": "RUNNING",
-                "line_order": None,  # filled below
-                "direction": None,
-                "origin": None,
-                "destination": None,
-                "next_station": a.next_station_name_ar,
-                "confidence": a.confidence,
-                "last_update": a.last_observed_at.isoformat(),
-                "latitude": a.latitude,
-                "longitude": a.longitude,
-                "speed": a.speed_mps,
-                "heading": a.heading_deg,
-            })
+            entry = _live_from_aggregate(a)
+            entry["id"] = a.train_id
+            entry["line_id"] = store.trips.get(a.train_id, {}).get("line_id")
+            out.append(entry)
     # Step 25 — same-line relative order among nearby trains
     ranks = _line_order_rank(store.aggregates)
     for entry in out:
