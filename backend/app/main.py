@@ -168,6 +168,17 @@ def _sqlproxy_live_probe() -> str:
         return f"ERROR: {exc}"
 
 
+@app.get("/admin/refresh-reference")
+def admin_refresh_reference() -> dict:
+    """Reload stations + railway segments from Postgres into the live cache."""
+    n_stations = 0
+    n_segments = 0
+    if getattr(store, "active", False):
+        n_stations = store.load_reference_stations()
+        n_segments = store.load_railway_segments()
+    return {"stations": n_stations, "railway_segments": n_segments}
+
+
 @app.get("/admin/diag")
 def admin_diag() -> dict:
     """Boot diagnostics: env vars (keys only), psycopg status, store active."""
