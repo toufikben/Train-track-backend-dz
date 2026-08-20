@@ -39,7 +39,7 @@ AFFROUN_ALGER = [
 
 # Arabic image name → station id in public.stations
 # Stations NOT registered in public.stations — MUST be skipped (no fabrication):
-UNREGISTERED = {"بني مراد", "شفة", "موزاية"}
+UNREGISTERED = set()
 
 NAME2ID = {
     "آغا": "st-aga",
