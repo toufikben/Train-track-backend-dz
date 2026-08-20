@@ -44,14 +44,17 @@ def main() -> int:
     }.items():
         fwd[key] = [s["station_id"] for s in get(f"/trips/{trip_id}/stops")]
 
+    stations = get("/stations")
+    check_counter("stations", len(stations), 28)
+    station_ids = {s["id"] for s in stations}
+    station_coords = {
+        s["id"]: (s.get("latitude"), s.get("longitude")) for s in stations
+    }
+
     # Reference counters (source of truth: the committed data file)
     check_counter("trips", len(trips), 105)
     total_stops = sum(len(v) for v in trips.values())
     check_counter("stops", total_stops, 1476)
-
-    stations = get("/stations")
-    check_counter("stations", len(stations), 28)
-    station_ids = {s["id"] for s in stations}
 
     checked = 0
     for tid, stops in trips.items():
@@ -75,9 +78,13 @@ def main() -> int:
             if not s.get("station_name"):
                 PROBLEMS.append(f"EMPTY_NAME {tid} seq={s.get('sequence')}")
 
-        # Geographic sanity: consecutive stops must be < 15 km apart
+        # Geographic sanity: consecutive stops must be < 15 km apart (coords from /stations)
         for a, b in zip(live, live[1:]):
-            d = haversine(a["latitude"], a["longitude"], b["latitude"], b["longitude"])
+            c1 = station_coords.get(a["station_id"])
+            c2 = station_coords.get(b["station_id"])
+            if c1 is None or c2 is None or None in c1 or None in c2:
+                continue
+            d = haversine(*c1, *c2)
             if d > 15_000:
                 PROBLEMS.append(f"GEO_JUMP {tid} seq={b.get('sequence')}: {d:.0f} m jump")
 
