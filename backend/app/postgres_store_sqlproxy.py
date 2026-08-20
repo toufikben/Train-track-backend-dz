@@ -305,8 +305,21 @@ class PostgresStoreSqlproxy:
                     continue
                 first, last = min(stops, key=lambda s: s.sequence), max(stops, key=lambda s: s.sequence)
                 parts = trip_id.split("-")
-                # trip ids look like "zeralda-aga-1501" / "aga-elaffroun-1025"
-                raw_line = "-".join(parts[:-1]) if len(parts) >= 3 else trip_id
+                # trip ids look like "zeralda-aga-1501" / "aga-elaffroun-1025" /
+                # "elaffroun-aga-1058-a" (return variant suffixes)
+                # Strip the trip number (and an optional "a"/"b" variant suffix)
+                # to derive the route prefix, e.g. "aga-zeralda" / "elaffroun-aga".
+                def _route_prefix(tid: str) -> str:
+                    p = tid.split("-")
+                    # Drop trailing variant suffix like "a"/"b" if penultimate part
+                    # exists and it looks like "...1058-a".
+                    if len(p) >= 4 and len(p[-1]) == 1 and p[-1].isalpha():
+                        p = p[:-1]
+                    # Drop the numeric train number.
+                    if p and p[-1].isdigit():
+                        p = p[:-1]
+                    return "-".join(p) if p else tid
+                raw_line = _route_prefix(trip_id)
                 # Canonical line ids expected by the Android app
                 # (TrainRepository.LINE_ZERALDA etc.)
                 line_id = _LINE_ID_MAP.get(raw_line, raw_line)
