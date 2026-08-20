@@ -293,9 +293,11 @@ class PostgresStoreSqlproxy:
         """Build the public trips index from real trip_stops rows (no fake data).
 
         Each registered trip_id becomes a Trip shell carrying its line (derived
-        from the trip id prefix), train_id (the trip id itself), OUTBOUND
-        direction, and no scheduled times (the official SNTF local schedules we
-        have do not publish them)."""
+        from the trip id prefix), train_id (the trip id itself), a direction
+        derived from the route prefix ("aga-*" means departing from Algiers/
+        AGA = OUTBOUND; "*-aga" means arriving at AGA = RETURN), and no
+        scheduled times (the official SNTF local schedules we have do not
+        publish them)."""
         if not self.active or not self.trip_stops:
             return 0
         with self._lock:
@@ -323,11 +325,17 @@ class PostgresStoreSqlproxy:
                 # Canonical line ids expected by the Android app
                 # (TrainRepository.LINE_ZERALDA etc.)
                 line_id = _LINE_ID_MAP.get(raw_line, raw_line)
+                # Derive direction from the route prefix convention:
+                # "aga-<suburb>"    -> train departs AGA toward the suburb = OUTBOUND
+                # "<suburb>-aga"    -> train arrives at AGA from the suburb  = RETURN
+                # "aga-airport"     -> OUTBOUND (airport line from AGA)
+                # "<other>-aga"     -> RETURN (arrives at AGA)
+                direction = "OUTBOUND" if raw_line.startswith("aga-") else "RETURN"
                 self.trips[trip_id] = {
                     "id": trip_id,
                     "train_id": trip_id,
                     "line_id": line_id,
-                    "direction": "OUTBOUND",
+                    "direction": direction,
                     "scheduled_departure": None,
                     "scheduled_arrival": None,
                     "status": "SCHEDULED",
