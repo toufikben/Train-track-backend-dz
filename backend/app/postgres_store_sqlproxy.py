@@ -270,6 +270,32 @@ class PostgresStoreSqlproxy:
         with self._lock:
             self.aggregates[row.trip_id] = row
 
+    def evict_stale_live(self) -> int:
+        """Prune old live-tracking rows from the real DB so it never grows
+        unbounded (observations older than 7 days, ended sessions older than
+        14 days). Reference data (stations, trips, trip_stops) is untouched."""
+        removed = 0
+        if not self.active:
+            return removed
+        try:
+            rows = _run_sql(
+                "DELETE FROM public.gps_observations "
+                "WHERE observed_at < now() - interval '7 days' "
+                "RETURNING id",
+                timeout=20,
+            )
+            removed += len(rows)
+            rows = _run_sql(
+                "DELETE FROM public.monitor_sessions "
+                "WHERE status != 'ACTIVE' AND ended_at < now() - interval '14 days' "
+                "RETURNING id",
+                timeout=20,
+            )
+            removed += len(rows)
+        except Exception:  # noqa: BLE001
+            pass  # pruning failure is non-fatal
+        return removed
+
     def evict_stale_db(self, max_age: float = DEFAULT_MAX_AGE_SECONDS) -> list[str]:
         removed: list[str] = []
         if not self.active:

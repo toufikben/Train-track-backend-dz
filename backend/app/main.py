@@ -146,6 +146,8 @@ def admin_health() -> dict:
     """Data-health snapshot for operators (no secrets)."""
     if getattr(store, "evict_stale_db", None):
         store.evict_stale_db()
+    if getattr(store, "evict_stale_live", None):
+        store.evict_stale_live()
     evict_stale(store)
     return health_snapshot(store)
 
@@ -373,6 +375,8 @@ def _live_from_aggregate(a) -> dict[str, Any]:
 def get_trip_live(trip_id: str) -> dict[str, Any] | None:
     if getattr(store, "evict_stale_db", None):
         store.evict_stale_db()
+    if getattr(store, "evict_stale_live", None):
+        store.evict_stale_live()
     evict_stale(store)
     a = store.aggregates.get(trip_id)
     if not a or not should_publish(a):
@@ -413,6 +417,8 @@ def get_train(train_id: str) -> dict[str, Any]:
 def get_train_live(train_id: str) -> dict[str, Any] | None:
     if getattr(store, "evict_stale_db", None):
         store.evict_stale_db()
+    if getattr(store, "evict_stale_live", None):
+        store.evict_stale_live()
     evict_stale(store)
     for a in store.aggregates.values():
         if a.train_id == train_id and should_publish(a):
@@ -439,6 +445,8 @@ def nearby_trains(
 
     if getattr(store, "evict_stale_db", None):
         store.evict_stale_db()
+    if getattr(store, "evict_stale_live", None):
+        store.evict_stale_live()
     evict_stale(store)
     out = []
     for a in store.aggregates.values():
