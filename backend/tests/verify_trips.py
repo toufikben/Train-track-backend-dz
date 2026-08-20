@@ -16,7 +16,7 @@ import sys
 import urllib.request
 
 BASE = "https://train-api-uep7.onrender.com"
-DATA_FILE = "trip_stops_data.json"  # resolved relative to this script
+DATA_FILE = __import__("os").path.join(__import__("os").path.dirname(__file__), "trip_stops_data.json")
 
 PROBLEMS = []
 
