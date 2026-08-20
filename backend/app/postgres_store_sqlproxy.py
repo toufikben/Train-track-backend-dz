@@ -35,6 +35,15 @@ try:
 except Exception:  # pragma: no cover
     _requests = None
 
+_LINE_ID_MAP: dict[str, str] = {
+    "zeralda-aga": "line-suburb-zeralda",
+    "aga-zeralda": "line-suburb-zeralda",
+    "thenia-aga": "line-suburb-thenia",
+    "aga-thenia": "line-suburb-thenia",
+    "aga-elaffroun": "line-suburb-elaffroun",
+    "elaffroun-aga": "line-suburb-elaffroun",
+}
+
 _VERSION = "?"
 if _requests is not None:
     _VERSION = getattr(_requests, "__version__", "?")
@@ -297,7 +306,10 @@ class PostgresStoreSqlproxy:
                 first, last = min(stops, key=lambda s: s.sequence), max(stops, key=lambda s: s.sequence)
                 parts = trip_id.split("-")
                 # trip ids look like "zeralda-aga-1501" / "aga-elaffroun-1025"
-                line_id = "-".join(parts[:-1]) if len(parts) >= 3 else trip_id
+                raw_line = "-".join(parts[:-1]) if len(parts) >= 3 else trip_id
+                # Canonical line ids expected by the Android app
+                # (TrainRepository.LINE_ZERALDA etc.)
+                line_id = _LINE_ID_MAP.get(raw_line, raw_line)
                 self.trips[trip_id] = {
                     "id": trip_id,
                     "train_id": trip_id,

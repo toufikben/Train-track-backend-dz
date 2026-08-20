@@ -386,7 +386,7 @@ def get_trains() -> list[dict[str, Any]]:
         seen[a.train_id] = {
             "id": a.train_id,
             "train_number": a.train_id,
-            "line_id": None,
+            "line_id": store.trips.get(a.train_id, {}).get("line_id"),
             "status": "RUNNING",
         }
     return list(seen.values())
@@ -399,7 +399,7 @@ def get_train(train_id: str) -> dict[str, Any]:
             return {
                 "id": train_id,
                 "train_number": train_id,
-                "line_id": None,
+                "line_id": store.trips.get(a.train_id, {}).get("line_id"),
                 "status": "RUNNING",
             }
     raise HTTPException(404, "train_not_found")
