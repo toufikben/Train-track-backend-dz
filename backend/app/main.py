@@ -426,7 +426,12 @@ def get_trains() -> list[dict[str, Any]]:
         store.evict_stale_db()
     if getattr(store, "evict_stale_live", None):
         store.evict_stale_live()
-    evict_stale(store)
+    removed = evict_stale(store)
+    # Step 26b — tell WS map clients a train left public view instantly
+    for trip_id in removed:
+        # Aggregate already removed; get the train id from trip meta if known
+        trip_meta = store.trips.get(trip_id, {})
+        hub.publish_train_gone_threadsafe(trip_meta.get("train_id") or trip_id, trip_id)
     # Distinct train ids from active aggregates only — full live payload
     # (position, ETA, next station) restored via _live_from_aggregate so the
     # map and alerts see real data. Kept per-train (not per-aggregate) and
@@ -494,7 +499,10 @@ def nearby_trains(
         store.evict_stale_db()
     if getattr(store, "evict_stale_live", None):
         store.evict_stale_live()
-    evict_stale(store)
+    removed = evict_stale(store)
+    for trip_id in removed:
+        trip_meta = store.trips.get(trip_id, {})
+        hub.publish_train_gone_threadsafe(trip_meta.get("train_id") or trip_id, trip_id)
     out = []
     for a in store.aggregates.values():
         if not should_publish(a):
