@@ -1,0 +1,854 @@
+{
+  "namespace": "baf9d9a1-71d7-4e9f-85a5-44f2aa6ec781",
+  "source": {
+    "source": "SNTF official timetable images via dz_portal",
+    "source_date": "2026-07-01 (summer program)",
+    "note": "Only stations registered in public.stations are included. Unregistered stations skipped."
+  },
+  "provisional": true,
+  "stations": 28,
+  "trips": 105,
+  "trip_stops": 1476,
+  "manifest": {
+    "zeralda-aga-1501": {
+      "trip_id": "367ab9ab-f235-5395-af7a-8748a63d3a5d",
+      "train_id": "34f9c796-095b-5b03-854a-13df562dddf1",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "INBOUND",
+      "route_label_ar": "زرالدة–الجزائر",
+      "station_count": 13
+    },
+    "zeralda-aga-B501": {
+      "trip_id": "13e7557f-d230-5ed8-a426-64ab260882b7",
+      "train_id": "4ae06361-a249-503b-9f37-1a17a7596045",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "INBOUND",
+      "route_label_ar": "زرالدة–الجزائر",
+      "station_count": 13
+    },
+    "zeralda-aga-1505": {
+      "trip_id": "06bc4163-7787-5f7d-9aff-9319bda4bda5",
+      "train_id": "e725c928-0a8e-5a6d-bf85-2590cb39fb97",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "INBOUND",
+      "route_label_ar": "زرالدة–الجزائر",
+      "station_count": 13
+    },
+    "zeralda-aga-1509": {
+      "trip_id": "12eb2519-13a3-5697-8606-5037f2512586",
+      "train_id": "618b62cc-7d24-571d-86b0-f17d936bcc57",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "INBOUND",
+      "route_label_ar": "زرالدة–الجزائر",
+      "station_count": 13
+    },
+    "zeralda-aga-1511": {
+      "trip_id": "cd2d71ac-aa72-5cc5-9495-988c0673c9db",
+      "train_id": "aa83e825-04fe-5103-8fa0-3b92e4be4974",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "INBOUND",
+      "route_label_ar": "زرالدة–الجزائر",
+      "station_count": 13
+    },
+    "zeralda-aga-1513": {
+      "trip_id": "fd298318-a32f-5260-bd79-583b84d8da1f",
+      "train_id": "1445a366-05d1-5510-8479-e20081648393",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "INBOUND",
+      "route_label_ar": "زرالدة–الجزائر",
+      "station_count": 13
+    },
+    "zeralda-aga-1515": {
+      "trip_id": "2576724e-5fca-5a0c-82c0-c6653102cee9",
+      "train_id": "ba8efc7c-d45c-595c-9456-6fa002e2bd35",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "INBOUND",
+      "route_label_ar": "زرالدة–الجزائر",
+      "station_count": 13
+    },
+    "zeralda-aga-1517": {
+      "trip_id": "97b5807c-4cc5-523d-be25-3c99815aeee2",
+      "train_id": "8a2cd11d-bbb3-5047-a0a7-7d81368e4897",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "INBOUND",
+      "route_label_ar": "زرالدة–الجزائر",
+      "station_count": 13
+    },
+    "zeralda-aga-1519": {
+      "trip_id": "73e84960-d827-525a-be71-f113cda96047",
+      "train_id": "ac08ac6f-265e-58fd-9ec5-e0ffe9184f4c",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "INBOUND",
+      "route_label_ar": "زرالدة–الجزائر",
+      "station_count": 13
+    },
+    "zeralda-aga-1521": {
+      "trip_id": "103bab34-e1fb-5557-b736-e4a67b4693f8",
+      "train_id": "5eb48e45-b5ca-58f2-9fee-55069d76e59e",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "INBOUND",
+      "route_label_ar": "زرالدة–الجزائر",
+      "station_count": 13
+    },
+    "zeralda-aga-1523": {
+      "trip_id": "d8277ccf-71ff-51f0-bee2-08f613c568dd",
+      "train_id": "c7cc998b-beeb-5bdf-a268-925f1e1e4de4",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "INBOUND",
+      "route_label_ar": "زرالدة–الجزائر",
+      "station_count": 13
+    },
+    "zeralda-aga-1525": {
+      "trip_id": "49c1f4a9-977e-553b-945f-50626ad5d636",
+      "train_id": "15a0a26d-8c63-5c0f-8187-451bf5a17897",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "INBOUND",
+      "route_label_ar": "زرالدة–الجزائر",
+      "station_count": 13
+    },
+    "zeralda-aga-1527": {
+      "trip_id": "6b1e4ecd-1c63-5d8b-b793-47651239f8fb",
+      "train_id": "2bff7f09-80b6-5092-a711-40296a5bdf5a",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "INBOUND",
+      "route_label_ar": "زرالدة–الجزائر",
+      "station_count": 13
+    },
+    "zeralda-aga-1529": {
+      "trip_id": "1951c423-ade5-5275-8d20-19286b64e0b7",
+      "train_id": "5b377ddc-d5d3-560b-80c4-762b8ef8e4bf",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "INBOUND",
+      "route_label_ar": "زرالدة–الجزائر",
+      "station_count": 13
+    },
+    "zeralda-aga-B515": {
+      "trip_id": "9614fa86-3cde-50ef-9618-ba70b6af782b",
+      "train_id": "3f98bd90-acd0-5f22-aff5-8b41bb86e808",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "INBOUND",
+      "route_label_ar": "زرالدة–الجزائر",
+      "station_count": 13
+    },
+    "aga-zeralda-1500": {
+      "trip_id": "57cf9efa-8769-57db-9ac1-c2236079a2c1",
+      "train_id": "0ac4af0e-29d8-5ee6-8e48-942092ac85c4",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–زرالدة",
+      "station_count": 13
+    },
+    "aga-zeralda-1502": {
+      "trip_id": "94ac8ec9-afe1-511c-bba9-c71722606a91",
+      "train_id": "cc73410c-8102-528f-beb9-2ac837c0b1e8",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–زرالدة",
+      "station_count": 13
+    },
+    "aga-zeralda-B502": {
+      "trip_id": "0664f457-acea-5fc9-a66e-988c791b6561",
+      "train_id": "c673ccfa-35aa-5ef7-b1e0-6e68dc6a04d4",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–زرالدة",
+      "station_count": 13
+    },
+    "aga-zeralda-1504": {
+      "trip_id": "a13dea25-5882-5acb-89c5-3cdd3b6317da",
+      "train_id": "21749a9e-87de-5ee2-9d47-0753e330a2aa",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–زرالدة",
+      "station_count": 13
+    },
+    "aga-zeralda-1508": {
+      "trip_id": "a55afc53-f3b7-5e77-9635-fd3fc37d73dd",
+      "train_id": "fcd32897-6397-5468-89b6-56940a54362e",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–زرالدة",
+      "station_count": 13
+    },
+    "aga-zeralda-1510": {
+      "trip_id": "43aac85b-711a-5f5b-a513-86a4e97c02af",
+      "train_id": "8acfe6bc-4697-5d32-bea9-c03ad617209e",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–زرالدة",
+      "station_count": 13
+    },
+    "aga-zeralda-1512": {
+      "trip_id": "5481572a-defc-5780-910a-15edb1a58d15",
+      "train_id": "eed7a184-3871-5fd8-9428-664bcba3b50c",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–زرالدة",
+      "station_count": 13
+    },
+    "aga-zeralda-1514": {
+      "trip_id": "15eff0e2-1d86-59d8-9eb7-781f2198d8bd",
+      "train_id": "dfc9025e-0a16-5451-9133-f62b4d4f13b1",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–زرالدة",
+      "station_count": 13
+    },
+    "aga-zeralda-1516": {
+      "trip_id": "6f154ad9-b379-5a09-94a6-3016958f505c",
+      "train_id": "08871c0f-aa9c-5360-9250-c388a95aefb0",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–زرالدة",
+      "station_count": 13
+    },
+    "aga-zeralda-1518": {
+      "trip_id": "86bb33b9-60a1-539c-92f5-e216545bdb7e",
+      "train_id": "fae960e8-e438-5453-a85b-8502266f7cda",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–زرالدة",
+      "station_count": 13
+    },
+    "aga-zeralda-1520": {
+      "trip_id": "f4606df6-e77c-59aa-b8b9-570b2ce602c9",
+      "train_id": "59dc1b89-1366-5409-8f81-83be1de36f02",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–زرالدة",
+      "station_count": 13
+    },
+    "aga-zeralda-1522": {
+      "trip_id": "575cd588-f7a7-5431-a759-1f5bec310aee",
+      "train_id": "ff544645-259f-50fe-8a4e-c4a0afb73d27",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–زرالدة",
+      "station_count": 13
+    },
+    "aga-zeralda-1524": {
+      "trip_id": "1999a524-6981-52f0-80f2-b1fc3d8dcb76",
+      "train_id": "46e82294-842f-5805-b4da-fadb10210e54",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–زرالدة",
+      "station_count": 13
+    },
+    "aga-zeralda-1526": {
+      "trip_id": "604bfed7-a6a8-534b-9367-83687644117e",
+      "train_id": "9938e43f-be54-5b4b-afea-f807357db1b1",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–زرالدة",
+      "station_count": 13
+    },
+    "aga-zeralda-1528": {
+      "trip_id": "8438bbb4-e454-5ebc-9584-a482abedc3ca",
+      "train_id": "26060425-12ff-5cb9-98a2-63bd4d4aa2ae",
+      "line_id": "e9b9c544-c906-5bc2-83ee-2bf46d97cef9",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–زرالدة",
+      "station_count": 13
+    },
+    "aga-thenia-27": {
+      "trip_id": "74003da6-251b-5e4d-ac82-c95b0c576b17",
+      "train_id": "321ce653-c1a8-5bf7-9959-325fb6ee4b1a",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-105": {
+      "trip_id": "7a78056f-8a8d-5177-8f22-0665b56f6853",
+      "train_id": "083920d9-0daa-5e4b-8524-86802b203980",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-33": {
+      "trip_id": "e3450869-bcf4-500b-bf96-81f4bcda4187",
+      "train_id": "2b0c7603-c9b4-5017-969d-8e47566e069f",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-35": {
+      "trip_id": "66d5420c-d4e9-557b-aeb5-9e66dd310423",
+      "train_id": "05742e1b-e22c-59dc-8503-2bc9ce2c1cbc",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-41": {
+      "trip_id": "d0adff78-2618-5f0d-aaa1-eae983a61985",
+      "train_id": "84ae8079-8b0b-55cf-a0e3-aae1119b4261",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-47": {
+      "trip_id": "c7d874b7-5910-5803-a54b-f3741efa6d7b",
+      "train_id": "bdef5036-e90b-54d8-94f4-8809d2a4d945",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-51": {
+      "trip_id": "146886fe-45e8-50d0-a858-a3fe2108a0e6",
+      "train_id": "4e6764fc-78a9-5f16-8208-0cbcdc4ddc87",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-57": {
+      "trip_id": "33a95e96-e596-55e0-ace6-c0418ccf19d5",
+      "train_id": "97dac923-efae-5d57-a5b2-d525f0e8af46",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-61": {
+      "trip_id": "50fb1bdc-33e9-5b7e-8b43-69c05267b750",
+      "train_id": "328f2c25-3166-562b-b967-583dd330343e",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-67": {
+      "trip_id": "eb9eaa93-fc87-52ba-947b-ab88fbd581d0",
+      "train_id": "2eb6f9c6-ffbc-52ef-83d1-4a19c7276bdf",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-119": {
+      "trip_id": "41575d50-a21e-5fae-8704-ed4d2502f251",
+      "train_id": "c29aff74-0755-5b09-80a6-16746ccda3e3",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-15": {
+      "trip_id": "8a2340d3-6101-57bc-8d1b-5fb038645905",
+      "train_id": "76e97e85-0145-5df9-9068-b053ccbc760f",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-71": {
+      "trip_id": "f7ce4744-57ed-5e8e-9ba3-fc52ff5b27d2",
+      "train_id": "8244995c-757b-5cdd-a6d9-77f5d53c3de2",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-121": {
+      "trip_id": "1cd7339b-21fb-5857-8c27-73dbd222a469",
+      "train_id": "fefb169d-abae-5050-a8bd-56fe9554b025",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-73-b": {
+      "trip_id": "33b876d7-6393-5a22-bb1a-33d036f0ef0e",
+      "train_id": "c92c8dd7-080d-55e4-81ec-56594efddc30",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-75-a": {
+      "trip_id": "d23c7636-2083-54bb-9a49-792b5fd0fdde",
+      "train_id": "f51359aa-336a-5afb-832a-fada9c1eb4b8",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-75-b": {
+      "trip_id": "1238d10e-b88c-5651-a5a1-64c92d1fc498",
+      "train_id": "3f818e3d-ea34-5e5b-b12e-0a3f3421c618",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-77": {
+      "trip_id": "b20990b1-54df-5c31-8dbd-39a3b4d21e66",
+      "train_id": "41db786a-b127-52c3-8508-f0c20c9e0ddd",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-79": {
+      "trip_id": "6b0d8143-d240-5e64-8322-bb2bab4b44d5",
+      "train_id": "3e4534de-ee39-523c-8eb8-69bb82f13d1b",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "aga-thenia-B161": {
+      "trip_id": "d632e90a-bbce-56df-abbc-ebce6ebacb37",
+      "train_id": "7ba4c83c-032c-5a0e-b380-a95ecd4d8f75",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–الثنية",
+      "station_count": 14
+    },
+    "thenia-aga-22": {
+      "trip_id": "9f5f2c0b-8c42-56a5-9032-c522af355770",
+      "train_id": "896252e5-7b4a-53a0-ae55-4e68836efaa4",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "thenia-aga-B114": {
+      "trip_id": "ed566eb0-5f65-594f-9f44-afe70bb70f9e",
+      "train_id": "fec96fe5-c53b-551f-bdf0-be6485c3eb22",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "thenia-aga-24": {
+      "trip_id": "fba6bad9-a7bc-5e11-91bb-f136d17825b7",
+      "train_id": "1f1240b2-c568-505f-a1b6-d56130bad23d",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "thenia-aga-28": {
+      "trip_id": "270eef66-5e60-5ac3-bf6c-d177f166cdb3",
+      "train_id": "a58a120f-8a7a-5544-8a02-88cf0b00de92",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "thenia-aga-12": {
+      "trip_id": "5916e41b-f0a3-5dd2-af29-db4e700e1f8f",
+      "train_id": "59abb200-56e9-51e2-9af6-31f0307c0298",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "thenia-aga-104": {
+      "trip_id": "851933b1-9a7b-5c18-99df-cd832e157630",
+      "train_id": "eeb63046-3826-55e0-bf30-4bb88b2bddb5",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "thenia-aga-34": {
+      "trip_id": "75b18322-2f7d-5365-b250-2ff5f0be441e",
+      "train_id": "729d4224-6330-5745-abe9-4cc399d27686",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "thenia-aga-40": {
+      "trip_id": "1068a122-095e-51ee-ac7d-9fcc93848919",
+      "train_id": "052b9763-58ac-5de7-8624-5f18c1e99e3a",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "thenia-aga-44": {
+      "trip_id": "12315a1d-ba8e-54e9-8eaa-50f020edf5c3",
+      "train_id": "5dd0471a-86b9-54a0-ad76-d9dc5ca471bf",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "thenia-aga-46": {
+      "trip_id": "b64f3b0b-2903-5907-80e7-a381adcc9499",
+      "train_id": "921960ff-1d4a-5c2d-8a74-10347af6409b",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "thenia-aga-50": {
+      "trip_id": "066952de-38c0-53bf-aed1-dcb88324e103",
+      "train_id": "ce0522f6-4d40-5ef2-bd4c-db5f4de0d0fa",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "thenia-aga-56": {
+      "trip_id": "ea030376-61cb-5732-87da-fab46b87e85c",
+      "train_id": "a43cf8f6-37c5-5857-9060-36da73c16a96",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "thenia-aga-60": {
+      "trip_id": "88fd97c9-0095-55a7-a10a-1b64de0b107c",
+      "train_id": "19440ed8-e48b-501d-8c6b-f4ebaeb510c3",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "thenia-aga-62": {
+      "trip_id": "9578fd4c-19e3-5497-a14d-c5acd26caf65",
+      "train_id": "b9be63b8-d195-5b07-8ded-57125b87cf6b",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "thenia-aga-66": {
+      "trip_id": "cc551e0c-d980-53dd-ae43-5c50df3f7c30",
+      "train_id": "d08e4da4-cbe0-53e0-837f-b3e50cd23093",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "thenia-aga-118": {
+      "trip_id": "aa3c37d1-afa9-5e60-a40b-db718ef07763",
+      "train_id": "0495dd88-83a0-56ba-8fff-685195388e32",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "thenia-aga-74": {
+      "trip_id": "24fdace8-39a6-5032-ad44-561bf41f3fab",
+      "train_id": "310d4682-5d82-5960-85fc-926fa5b2972b",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "thenia-aga-76": {
+      "trip_id": "0d24bc65-357a-5d8a-b992-473ebf07e58c",
+      "train_id": "9b442686-f127-5f54-a2e4-5e6544886629",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "thenia-aga-78": {
+      "trip_id": "4b793589-d039-5c90-b934-9ae49008d9d7",
+      "train_id": "0d944a26-704f-5cbb-82ea-a3bdb6e8c6cf",
+      "line_id": "bd566e47-d079-561d-84d1-f66283653b14",
+      "direction": "INBOUND",
+      "route_label_ar": "الثنية–الجزائر",
+      "station_count": 14
+    },
+    "aga-elaffroun-1025": {
+      "trip_id": "ffd66ce7-ebc5-5a13-9460-f6bb506fe672",
+      "train_id": "d8032a38-7b87-509a-b480-41c334aedadd",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–العفرون",
+      "station_count": 15
+    },
+    "aga-elaffroun-1027": {
+      "trip_id": "8776736e-2617-5a7f-b0d0-d7f9480b2a62",
+      "train_id": "7daf737e-7336-5068-88da-07475bbd27ef",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–العفرون",
+      "station_count": 15
+    },
+    "aga-elaffroun-1029": {
+      "trip_id": "0bbb6604-b096-5135-b435-508664aa1851",
+      "train_id": "2073df78-737f-5bdb-9979-2d70fb940d73",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–العفرون",
+      "station_count": 15
+    },
+    "aga-elaffroun-1031": {
+      "trip_id": "2fd5ad16-3e37-540d-8e8d-42e2bea54eb4",
+      "train_id": "77450129-adf9-5a02-9afa-0e1b2a890f0f",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–العفرون",
+      "station_count": 15
+    },
+    "aga-elaffroun-1035": {
+      "trip_id": "55c93a80-753a-5469-a30c-2a4c9a77b74f",
+      "train_id": "a341866d-2759-5fc4-a0de-e48d7c81d1b8",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–العفرون",
+      "station_count": 15
+    },
+    "aga-elaffroun-1037": {
+      "trip_id": "6ec06d3e-eec0-5027-aefa-da3d4e72961f",
+      "train_id": "f1e15359-a2d3-539c-b6ae-13ec0da8719d",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–العفرون",
+      "station_count": 15
+    },
+    "aga-elaffroun-1043": {
+      "trip_id": "c16ed697-2921-56ee-afe9-1a049ddfe152",
+      "train_id": "34b3bd13-6863-55fd-b693-d978e3c7b70e",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–العفرون",
+      "station_count": 15
+    },
+    "aga-elaffroun-1045": {
+      "trip_id": "7b667248-2f21-59b8-8bf4-3f340b2f3326",
+      "train_id": "750277e0-bbc0-5f1d-a689-790073fb507d",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–العفرون",
+      "station_count": 15
+    },
+    "aga-elaffroun-1049": {
+      "trip_id": "e163f3e0-8aa6-5bef-a971-569a82d813b4",
+      "train_id": "1597e2c1-be87-5cba-becb-5791f3ecaea8",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–العفرون",
+      "station_count": 15
+    },
+    "aga-elaffroun-1051-a": {
+      "trip_id": "2e68aa30-20ed-5c4d-b2ae-9cdc6274687e",
+      "train_id": "c2b94076-e30c-5e60-9982-0184d95ae49f",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–العفرون",
+      "station_count": 15
+    },
+    "aga-elaffroun-1051-b": {
+      "trip_id": "65e33204-9a28-5abc-85bf-b1d315304a4b",
+      "train_id": "7b44bdbe-e583-53ac-aad3-4073a93eecc0",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–العفرون",
+      "station_count": 15
+    },
+    "aga-elaffroun-1053": {
+      "trip_id": "c4bd6c13-8d9e-5058-bc54-e8b2371a0a00",
+      "train_id": "e145ce9a-5861-5d2f-8657-81da3b69d8cb",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–العفرون",
+      "station_count": 15
+    },
+    "aga-elaffroun-1057": {
+      "trip_id": "96819eca-467d-53ee-b096-273e3c4591e6",
+      "train_id": "d0e577f9-0044-5d53-afe6-a7d581b99b88",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–العفرون",
+      "station_count": 15
+    },
+    "aga-elaffroun-1061-a": {
+      "trip_id": "e8f32a96-edb2-5298-a2b3-e522943ef0c0",
+      "train_id": "0de16cca-55f2-5f67-bd6b-a7aff4dcc374",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–العفرون",
+      "station_count": 15
+    },
+    "aga-elaffroun-1061-b": {
+      "trip_id": "b6f99933-8029-514c-8e10-4745e403ffa1",
+      "train_id": "0f6a8eda-8dc2-5c52-9962-5360d0e6cfb9",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–العفرون",
+      "station_count": 15
+    },
+    "aga-elaffroun-1065": {
+      "trip_id": "27aeb5ce-f1e8-58a5-b2c5-cffd4c3abb12",
+      "train_id": "23ca37f2-1b84-5565-9448-c17d6067ecb3",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–العفرون",
+      "station_count": 15
+    },
+    "aga-elaffroun-1067-a": {
+      "trip_id": "166caeb2-220b-5048-a6ad-327a04f569d3",
+      "train_id": "8218c6b9-f6a8-5e67-ad8f-84e6d5329a0d",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–العفرون",
+      "station_count": 15
+    },
+    "aga-elaffroun-1069": {
+      "trip_id": "2f79fe71-bb1f-5646-b69b-7d04a2225ff4",
+      "train_id": "bcc78747-e04a-58ad-9b09-d528b391e452",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "OUTBOUND",
+      "route_label_ar": "الجزائر–العفرون",
+      "station_count": 15
+    },
+    "elaffroun-aga-1022": {
+      "trip_id": "3538813b-0e06-5500-a1c7-73077e7d2e4b",
+      "train_id": "b1546753-f454-5895-b217-89affa37b2ab",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "INBOUND",
+      "route_label_ar": "العفرون–الجزائر",
+      "station_count": 15
+    },
+    "elaffroun-aga-1024": {
+      "trip_id": "805c7c04-cbc1-5b07-8252-a50c570fea66",
+      "train_id": "ecaaae53-b94c-582f-8f91-dd9168138a77",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "INBOUND",
+      "route_label_ar": "العفرون–الجزائر",
+      "station_count": 15
+    },
+    "elaffroun-aga-1028-a": {
+      "trip_id": "cc4d54ed-dcbe-5ec7-b1f7-4ea6a9dcf07b",
+      "train_id": "095cceac-0521-51b2-959d-9d3ff1f7fcd0",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "INBOUND",
+      "route_label_ar": "العفرون–الجزائر",
+      "station_count": 15
+    },
+    "elaffroun-aga-1028-b": {
+      "trip_id": "c78b53b2-8844-5723-8f16-9814857861fe",
+      "train_id": "5a6e5a0a-815f-546f-9e61-b22d87c8ddc4",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "INBOUND",
+      "route_label_ar": "العفرون–الجزائر",
+      "station_count": 15
+    },
+    "elaffroun-aga-1032": {
+      "trip_id": "eb61e306-2fcc-5fad-ae39-79462cee06d6",
+      "train_id": "03a8c51b-6bf3-5462-868e-5b3f214899eb",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "INBOUND",
+      "route_label_ar": "العفرون–الجزائر",
+      "station_count": 15
+    },
+    "elaffroun-aga-1034": {
+      "trip_id": "f6d2ae79-c051-5e06-a8fe-cb35aab066f3",
+      "train_id": "a6a03af8-f088-5f82-9d13-f95667a02fa8",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "INBOUND",
+      "route_label_ar": "العفرون–الجزائر",
+      "station_count": 15
+    },
+    "elaffroun-aga-1036": {
+      "trip_id": "da6a3604-5ee9-54d0-b68b-da87d4d57737",
+      "train_id": "f354babb-ed50-58fb-af92-b30ea672897f",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "INBOUND",
+      "route_label_ar": "العفرون–الجزائر",
+      "station_count": 15
+    },
+    "elaffroun-aga-1038": {
+      "trip_id": "7c425e5b-6710-5f0e-a2ec-e18fd857237e",
+      "train_id": "07bc1441-422d-598b-8016-03140c02ec9e",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "INBOUND",
+      "route_label_ar": "العفرون–الجزائر",
+      "station_count": 15
+    },
+    "elaffroun-aga-1040": {
+      "trip_id": "ee5069d0-026b-56a3-b46a-cc3cf752a36d",
+      "train_id": "1f96fa97-1406-5973-b6cf-ac61f8d7932c",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "INBOUND",
+      "route_label_ar": "العفرون–الجزائر",
+      "station_count": 15
+    },
+    "elaffroun-aga-1044": {
+      "trip_id": "328eec6a-7ab6-5d1d-a339-4f52c1412d0e",
+      "train_id": "ea6ddcf4-4a94-5d2b-892e-0839d40a90fb",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "INBOUND",
+      "route_label_ar": "العفرون–الجزائر",
+      "station_count": 15
+    },
+    "elaffroun-aga-1048": {
+      "trip_id": "6b52e469-1c6d-593e-83a2-41207884cf1c",
+      "train_id": "5017e506-ba52-582c-91c8-990254a5f3e1",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "INBOUND",
+      "route_label_ar": "العفرون–الجزائر",
+      "station_count": 15
+    },
+    "elaffroun-aga-1052": {
+      "trip_id": "edd4d550-3cd3-5556-a077-9388251607cf",
+      "train_id": "84809a95-537a-5d8f-a0df-039db8078a84",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "INBOUND",
+      "route_label_ar": "العفرون–الجزائر",
+      "station_count": 15
+    },
+    "elaffroun-aga-1054": {
+      "trip_id": "7a4939a8-4328-5e6b-8d1b-cd178b1035cf",
+      "train_id": "3e824c60-8436-5d34-859b-2316f32d3ca9",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "INBOUND",
+      "route_label_ar": "العفرون–الجزائر",
+      "station_count": 15
+    },
+    "elaffroun-aga-1058-a": {
+      "trip_id": "905d984d-31c0-5027-9dc7-327d5b5286c1",
+      "train_id": "55c4a9a6-2469-5295-a20b-0292d1085e34",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "INBOUND",
+      "route_label_ar": "العفرون–الجزائر",
+      "station_count": 15
+    },
+    "elaffroun-aga-1058-b": {
+      "trip_id": "f36979e9-981a-5296-9ddc-e1d3a9ea7f07",
+      "train_id": "3a620dcd-41de-5e69-82e0-1fd58bd39f9c",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "INBOUND",
+      "route_label_ar": "العفرون–الجزائر",
+      "station_count": 15
+    },
+    "elaffroun-aga-1064": {
+      "trip_id": "4fd58334-4cde-55cc-85a4-e1d92ad3dcda",
+      "train_id": "c5cdeade-78d4-5126-8045-227f91c91be3",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "INBOUND",
+      "route_label_ar": "العفرون–الجزائر",
+      "station_count": 15
+    },
+    "elaffroun-aga-1066": {
+      "trip_id": "db794769-41cd-5415-be10-b2189400445a",
+      "train_id": "bd44d57a-7f9d-5e21-a025-8de25c192072",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "INBOUND",
+      "route_label_ar": "العفرون–الجزائر",
+      "station_count": 15
+    },
+    "elaffroun-aga-1070": {
+      "trip_id": "1de77193-ef06-59d4-bcb6-21d9576556a2",
+      "train_id": "1b76a0c7-d822-5ce9-b009-4e65146a11b0",
+      "line_id": "bd458a9a-5dab-5ee0-8c02-063626e8b0f2",
+      "direction": "INBOUND",
+      "route_label_ar": "العفرون–الجزائر",
+      "station_count": 15
+    }
+  }
+}

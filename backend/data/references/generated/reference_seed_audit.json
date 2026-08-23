@@ -1,0 +1,12 @@
+{
+  "status": "ready_for_review",
+  "source": {
+    "source": "SNTF official timetable images via dz_portal",
+    "source_date": "2026-07-01 (summer program)",
+    "note": "Only stations registered in public.stations are included. Unregistered stations skipped."
+  },
+  "stations_in_source": 28,
+  "trips_in_source": 105,
+  "missing_station_ids": [],
+  "trips_with_missing_stations": {}
+}
