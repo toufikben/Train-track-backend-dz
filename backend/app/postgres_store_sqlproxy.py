@@ -112,7 +112,7 @@ class PostgresStoreSqlproxy:
         rows = _run_sql(
             "SELECT id, name_ar, name_fr, name_en, "
             "ST_Y(location) AS lat_y, ST_X(location) AS lon_x, "
-            "COALESCE(railway_line_ids, '[]'::jsonb)::text AS station_lines "
+            "'[]'::text AS station_lines "
             "FROM public.stations WHERE deleted_at IS NULL"
         )
         with self._lock:
@@ -133,7 +133,7 @@ class PostgresStoreSqlproxy:
             try:
                 rows = _run_sql(
                     "SELECT id, line_id, ST_AsGeoJSON(geometry) AS geom_json, distance_meters, "
-                    "direction, source_kind FROM public.railway_segments WHERE deleted_at IS NULL"
+                    "direction, 'UNKNOWN'::text AS source_kind FROM public.railway_segments"
                 )
                 if not rows:
                     return 0
@@ -166,6 +166,35 @@ class PostgresStoreSqlproxy:
                     anonymous_monitor_id=r["anonymous_monitor_id"],
                     status=str(r["status"]), started_at=r["started_at"],
                     ended_at=r["ended_at"], last_observation_at=r["last_observation_at"],
+                )
+        aggregate_rows = _run_sql(
+            "SELECT trip_id, train_id, ST_Y(location) AS latitude, ST_X(location) AS longitude, "
+            "estimated_speed_mps, heading_deg, confidence, confidence_score, freshness, "
+            "source_count, last_observed_at, last_estimated_at, truth, next_station_id, "
+            "next_station_name_ar, station_event, eta_station_id, eta_min_sec, eta_max_sec, "
+            "eta_confidence, wait_decision, wait_reason_ar "
+            "FROM public.aggregated_train_positions WHERE truth IS NULL OR truth <> 'UNKNOWN'"
+        )
+        with self._lock:
+            for r in aggregate_rows:
+                self.aggregates[str(r["trip_id"])] = AggregateRow(
+                    trip_id=str(r["trip_id"]), train_id=str(r["train_id"]),
+                    latitude=r["latitude"], longitude=r["longitude"],
+                    speed_mps=r["estimated_speed_mps"], heading_deg=r["heading_deg"],
+                    confidence=str(r["confidence"] or "UNKNOWN"),
+                    confidence_score=float(r["confidence_score"] or 0.0),
+                    freshness=str(r["freshness"] or "UNKNOWN"),
+                    source_count=int(r["source_count"] or 0),
+                    last_observed_at=r["last_observed_at"] or utcnow(),
+                    last_estimated_at=r["last_estimated_at"] or r["last_observed_at"] or utcnow(),
+                    truth=str(r["truth"] or "UNKNOWN"),
+                    next_station_id=str(r["next_station_id"]) if r["next_station_id"] else None,
+                    next_station_name_ar=r["next_station_name_ar"],
+                    station_event=r["station_event"],
+                    eta_station_id=str(r["eta_station_id"]) if r["eta_station_id"] else None,
+                    eta_min_sec=r["eta_min_sec"], eta_max_sec=r["eta_max_sec"],
+                    eta_confidence=r["eta_confidence"], wait_decision=r["wait_decision"],
+                    wait_reason_ar=r["wait_reason_ar"],
                 )
 
     # ---------- live writes ----------
@@ -205,24 +234,21 @@ class PostgresStoreSqlproxy:
         with self._lock:
             if len(self.observations) >= self._obs_limit:
                 self.observations = self.observations[-(self._obs_limit // 2):]
-        try:
-            _run_sql(
-                "INSERT INTO public.gps_observations "
-                "(id, session_id, trip_id, train_id, latitude, longitude, "
-                "accuracy_m, speed_mps, heading_deg, observed_at, "
-                "accepted, rejection_reason, validation_score) "
-                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
-                "ON CONFLICT (id) DO NOTHING" % (
-                    _esc(row.id), _esc(row.session_id), _esc(row.trip_id), _esc(row.train_id),
-                    row.latitude, row.longitude, row.accuracy,
-                    _q(row.speed), _q(row.heading), _qt(row.observed_at),
-                    "true" if row.accepted else "false",
-                    _q(row.rejection_reason), row.validation_score,
-                ),
-                timeout=10,
-            )
-        except Exception:  # noqa: BLE001
-            pass  # observation loss is non-fatal
+        _run_sql(
+            "INSERT INTO public.gps_observations "
+            "(id, session_id, trip_id, train_id, location, accuracy_meters, "
+            "speed_mps, heading_deg, observed_at, is_valid, rejection_reason, "
+            "validation_score) "
+            "VALUES (%s,%s,%s,%s,ST_SetSRID(ST_MakePoint(%s,%s),4326),%s,%s,%s,%s,%s,%s,%s) "
+            "ON CONFLICT (id) DO NOTHING" % (
+                _esc(row.id), _esc(row.session_id), _esc(row.trip_id), _esc(row.train_id),
+                row.longitude, row.latitude, _q(row.accuracy),
+                _q(row.speed), _q(row.heading), _qt(row.observed_at),
+                "true" if row.accepted else "false",
+                _q(row.rejection_reason), _q(row.validation_score),
+            ),
+            timeout=10,
+        )
         with self._lock:
             self.observations.append(row)
 
@@ -237,21 +263,26 @@ class PostgresStoreSqlproxy:
             with self._lock:
                 self.aggregates.pop(trip_id, None)
             return
-        cols = ("trip_id, train_id, latitude, longitude, truth, confidence, freshness, "
-                "source_count, next_station_id, next_station_name_ar, station_event, "
-                "eta_station_id, eta_min_sec, eta_max_sec, eta_confidence, "
-                "wait_decision, wait_reason_ar, last_observed_at, updated_at")
-        values = ("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,now()" % (
-            _esc(row.trip_id), _esc(row.train_id), row.latitude, row.longitude,
-            _esc(row.truth), _esc(row.confidence), _esc(row.freshness), row.source_count,
-            _q(row.next_station_id), _q(row.next_station_name_ar), _q(row.station_event),
+        cols = ("trip_id, train_id, location, estimated_speed_mps, heading_deg, "
+                "confidence, confidence_score, freshness, truth, source_count, "
+                "next_station_id, next_station_name_ar, station_event, eta_station_id, "
+                "eta_min_sec, eta_max_sec, eta_confidence, wait_decision, wait_reason_ar, "
+                "last_observed_at, last_estimated_at, updated_at")
+        values = ", ".join([
+            _esc(row.trip_id), _esc(row.train_id),
+            f"ST_SetSRID(ST_MakePoint({row.longitude},{row.latitude}),4326)",
+            _q(row.speed_mps), _q(row.heading_deg), _q(row.confidence),
+            _q(row.confidence_score), _q(row.freshness), _q(row.truth),
+            str(row.source_count), _q(row.next_station_id),
+            _q(row.next_station_name_ar), _q(row.station_event),
             _q(row.eta_station_id), _q(row.eta_min_sec), _q(row.eta_max_sec),
-            _q(row.eta_confidence),             _q(row.wait_decision), _q(row.wait_reason_ar),
-            _qt(row.last_observed_at),
-        ))
-        update = ("train_id=EXCLUDED.train_id, latitude=EXCLUDED.latitude, "
-                  "longitude=EXCLUDED.longitude, truth=EXCLUDED.truth, "
-                  "confidence=EXCLUDED.confidence, freshness=EXCLUDED.freshness, "
+            _q(row.eta_confidence), _q(row.wait_decision), _q(row.wait_reason_ar),
+            _qt(row.last_observed_at), _qt(row.last_estimated_at), "now()",
+        ])
+        update = ("train_id=EXCLUDED.train_id, location=EXCLUDED.location, "
+                  "estimated_speed_mps=EXCLUDED.estimated_speed_mps, heading_deg=EXCLUDED.heading_deg, "
+                  "confidence=EXCLUDED.confidence, confidence_score=EXCLUDED.confidence_score, "
+                  "freshness=EXCLUDED.freshness, truth=EXCLUDED.truth, "
                   "source_count=EXCLUDED.source_count, "
                   "next_station_id=EXCLUDED.next_station_id, "
                   "next_station_name_ar=EXCLUDED.next_station_name_ar, "
@@ -261,7 +292,8 @@ class PostgresStoreSqlproxy:
                   "eta_confidence=EXCLUDED.eta_confidence, "
                   "wait_decision=EXCLUDED.wait_decision, "
                   "wait_reason_ar=EXCLUDED.wait_reason_ar, "
-                  "last_observed_at=EXCLUDED.last_observed_at, updated_at=now()")
+                  "last_observed_at=EXCLUDED.last_observed_at, last_estimated_at=EXCLUDED.last_estimated_at, "
+                  "updated_at=now()")
         _run_sql(
             f"INSERT INTO public.aggregated_train_positions ({cols}) VALUES ({values}) "
             f"ON CONFLICT (trip_id) DO UPDATE SET {update}",
@@ -377,8 +409,10 @@ class PostgresStoreSqlproxy:
             return 0
         try:
             rows = _run_sql(
-                "SELECT trip_id, station_id, station_name, sequence, "
-                "latitude, longitude FROM public.trip_stops ORDER BY trip_id, sequence"
+                "SELECT ts.trip_id, ts.station_id, s.name_ar AS station_name, ts.sequence, "
+                "ST_Y(s.location) AS latitude, ST_X(s.location) AS longitude "
+                "FROM public.trip_stops ts JOIN public.stations s ON s.id = ts.station_id "
+                "ORDER BY ts.trip_id, ts.sequence"
             )
         except RuntimeError:
             return 0
@@ -407,10 +441,8 @@ class PostgresStoreSqlproxy:
         for r in rows:
             _run_sql(
                 "INSERT INTO public.trip_stops "
-                "(trip_id, station_id, station_name, sequence, latitude, longitude) "
-                "VALUES (%s,%s,%s,%s,%s,%s)" % (
-                    _esc(trip_id), _esc(r.station_id), _esc(r.station_name),
-                    r.sequence, r.latitude, r.longitude,
+                "(trip_id, station_id, sequence) VALUES (%s,%s,%s)" % (
+                    _esc(trip_id), _esc(r.station_id), r.sequence,
                 ),
                 timeout=10,
             )
@@ -418,18 +450,18 @@ class PostgresStoreSqlproxy:
             self.trip_stops[trip_id] = list(rows)
 
     def save_report(self, report: dict) -> bool:
+        """Persist a community report using the canonical report contract."""
         if not self.active:
             return True
         try:
             _run_sql(
                 "INSERT INTO public.community_reports "
-                "(report_id, trip_id, reporter_id, category, description, "
-                "latitude, longitude, reported_at) "
-                "VALUES (%s,%s,%s,%s,%s,%s,%s,now())" % (
-                    _q(report.get("report_id")), _q(report.get("trip_id")),
-                    _q(report.get("reporter_id")), _q(report.get("category")),
-                    _q(report.get("description")), report.get("latitude"),
-                    report.get("longitude"),
+                "(id, train_id, trip_id, station_id, report_type, description, created_at) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING" % (
+                    _q(report.get("id")), _q(report.get("train_id")),
+                    _q(report.get("trip_id")), _q(report.get("station_id")),
+                    _q(report.get("report_type")), _q(report.get("description")),
+                    _q(report.get("created_at")),
                 ),
                 timeout=10,
             )
@@ -447,7 +479,7 @@ class PostgresStoreSqlproxy:
                 return 0
             rows = _run_sql(
                 "DELETE FROM public.community_reports WHERE id IN "
-                "(SELECT id FROM public.community_reports ORDER BY reported_at ASC "
+                "(SELECT id FROM public.community_reports ORDER BY created_at ASC "
                 f"LIMIT {total - limit}) RETURNING id"
             )
             return len(rows)

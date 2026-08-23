@@ -12,7 +12,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse, HTMLResponse
@@ -101,6 +101,23 @@ class ReportIn(BaseModel):
     station_id: str | None = None
     report_type: str = "OTHER"
     description: str | None = None
+
+
+def _validate_db_uuid_fields(*fields: tuple[str, str | None]) -> None:
+    """Reject non-UUID identifiers only when a UUID-backed DB adapter is active.
+
+    MemoryStore remains compatible with local/text fixtures. PostgreSQL paths do
+    not silently normalize or invent identifiers; callers receive a stable 422.
+    """
+    if not getattr(store, "active", False):
+        return
+    for field_name, value in fields:
+        if value is None:
+            continue
+        try:
+            UUID(str(value))
+        except (AttributeError, TypeError, ValueError):
+            raise HTTPException(status_code=422, detail=f"invalid_{field_name}_uuid")
 
 
 # ─── Startup: load reference stations (NOT live) ─────────────────────────────
@@ -524,6 +541,7 @@ def nearby_trains(
 
 @app.post("/monitor-sessions")
 def create_monitor_session(body: CreateMonitorSessionIn) -> dict[str, Any]:
+    _validate_db_uuid_fields(("trip_id", body.trip_id), ("train_id", body.train_id))
     sid = str(uuid4())
     row = SessionRow(
         id=sid,
@@ -585,8 +603,25 @@ def end_monitor_session(session_id: str) -> dict[str, Any]:
 
 # ─── Observations (core pipeline) ────────────────────────────────────────────
 
+def _assert_observation_binding(body: ObservationIn) -> None:
+    """Reject a known session when its trip/train identity is contradicted.
+
+    Unknown sessions intentionally keep the existing orphan-session behavior in
+    this narrow patch; a separate policy decision is required to reject them.
+    """
+    session = store.sessions.get(body.session_id)
+    if session is None:
+        return
+    if session.trip_id != body.trip_id or session.train_id != body.train_id:
+        raise HTTPException(status_code=409, detail="session_binding_mismatch")
+
+
 @app.post("/observations")
 def post_observation(body: ObservationIn) -> dict[str, Any]:
+    _validate_db_uuid_fields(
+        ("session_id", body.session_id), ("trip_id", body.trip_id), ("train_id", body.train_id)
+    )
+    _assert_observation_binding(body)
     key = f"{body.session_id}:{body.train_id}"
     if not observation_limiter.allow(key):
         raise HTTPException(429, "rate_limited")
@@ -645,6 +680,10 @@ class TripStopsIn(BaseModel):
 @app.post("/admin/trip-stops")
 def set_trip_stops(body: TripStopsIn) -> dict[str, Any]:
     """Register ordered stops for a trip so Station Detection + ETA can run."""
+    _validate_db_uuid_fields(
+        ("trip_id", body.trip_id),
+        *( ("station_id", sid) for sid in body.station_ids )
+    )
     rows: list[TripStopRow] = []
     for i, sid in enumerate(body.station_ids, start=1):
         st = store.stations.get(sid)
@@ -669,6 +708,9 @@ def set_trip_stops(body: TripStopsIn) -> dict[str, Any]:
 
 @app.post("/reports")
 def submit_report(body: ReportIn) -> dict[str, str]:
+    _validate_db_uuid_fields(
+        ("train_id", body.train_id), ("trip_id", body.trip_id), ("station_id", body.station_id)
+    )
     store.reports.append({
         "id": str(uuid4()),
         "train_id": body.train_id,
