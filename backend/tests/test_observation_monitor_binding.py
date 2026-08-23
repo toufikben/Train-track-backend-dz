@@ -96,6 +96,60 @@ def test_unknown_session_keeps_orphan_behavior_outside_this_patch_scope() -> Non
     assert "unknown-binding-session" in store.sessions
 
 
+def test_db_mode_rejects_unknown_reference_before_cache_mutation(monkeypatch) -> None:
+    monkeypatch.setattr(store, "active", True, raising=False)
+    monkeypatch.setattr(
+        store, "check_trip_train_reference", lambda _trip, _train: "unknown_trip_reference", raising=False
+    )
+    response = client.post(
+        "/monitor-sessions",
+        json={
+            "trip_id": "11111111-1111-4111-8111-111111111111",
+            "train_id": "22222222-2222-4222-8222-222222222222",
+            "anonymous_monitor_id": "db-reference-test",
+        },
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"] == "unknown_trip_reference"
+    assert store.sessions == {}
+
+
+def test_db_mode_does_not_cache_when_persistence_fails(monkeypatch) -> None:
+    monkeypatch.setattr(store, "active", True, raising=False)
+    monkeypatch.setattr(store, "check_trip_train_reference", lambda _trip, _train: None, raising=False)
+    def fail_persist(*_args, **_kwargs):
+        raise RuntimeError("simulated persistence failure")
+    monkeypatch.setattr(store, "upsert_session", fail_persist, raising=False)
+    response = client.post(
+        "/monitor-sessions",
+        json={
+            "trip_id": "11111111-1111-4111-8111-111111111111",
+            "train_id": "22222222-2222-4222-8222-222222222222",
+            "anonymous_monitor_id": "db-persistence-test",
+        },
+    )
+    assert response.status_code == 503
+    assert response.json()["detail"] == "storage_unavailable"
+    assert store.sessions == {}
+
+
+def test_db_mode_rejects_orphan_observation(monkeypatch) -> None:
+    monkeypatch.setattr(store, "active", True, raising=False)
+    monkeypatch.setattr(store, "check_trip_train_reference", lambda _trip, _train: None, raising=False)
+    response = client.post(
+        "/observations",
+        json=_observation(
+            "33333333-3333-4333-8333-333333333333",
+            "11111111-1111-4111-8111-111111111111",
+            "22222222-2222-4222-8222-222222222222",
+        ),
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"] == "session_not_found"
+    assert store.observations == []
+    assert store.aggregates == {}
+
+
 def test_db_mode_rejects_non_uuid_observation_ids(monkeypatch) -> None:
     monkeypatch.setattr(store, "active", True, raising=False)
     response = client.post(

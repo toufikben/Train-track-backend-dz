@@ -8,7 +8,17 @@
     "Station names aligned with published suburban axes (Alger–Thénia, Zéralda, El Affroun) as cited in project research notes.",
     "Coordinates are approximate public map anchors for development; mark as provisional in data_sources."
   ],
-  "as_of": "2026-08-19",
+  "as_of": "2026-08-23",
+  "provenance": {
+    "added_missing_stations_checked_at": "2026-08-23",
+    "source": "OpenStreetMap",
+    "license": "ODbL",
+    "nodes": {
+      "st-benimerad": "https://www.openstreetmap.org/node/2797257063",
+      "st-cheffa": "https://www.openstreetmap.org/node/432833262",
+      "st-mouzaia": "https://www.openstreetmap.org/node/2047573033"
+    }
+  },
   "stations": [
     {
       "id": "st-aga",
@@ -295,6 +305,39 @@
       "name_en": "El Affroun",
       "lat": 36.4678,
       "lon": 2.6288,
+      "lines": [
+        "line-suburb-elaffroun"
+      ]
+    },
+    {
+      "id": "st-benimerad",
+      "name_ar": "بني مراد",
+      "name_fr": "Beni Mered",
+      "name_en": "Beni Mered",
+      "lat": 36.5202414,
+      "lon": 2.8594797,
+      "lines": [
+        "line-suburb-elaffroun"
+      ]
+    },
+    {
+      "id": "st-cheffa",
+      "name_ar": "الشفة",
+      "name_fr": "Chiffa",
+      "name_en": "Chiffa",
+      "lat": 36.4649973,
+      "lon": 2.7392872,
+      "lines": [
+        "line-suburb-elaffroun"
+      ]
+    },
+    {
+      "id": "st-mouzaia",
+      "name_ar": "موزاية",
+      "name_fr": "Mouzaïa",
+      "name_en": "Mouzaia",
+      "lat": 36.4704891,
+      "lon": 2.6924469,
       "lines": [
         "line-suburb-elaffroun"
       ]

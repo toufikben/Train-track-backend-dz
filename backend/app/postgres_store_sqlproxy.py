@@ -197,7 +197,30 @@ class PostgresStoreSqlproxy:
                     wait_reason_ar=r["wait_reason_ar"],
                 )
 
-    # ---------- live writes ----------
+    # ---------- reference validation and live writes ----------
+
+    def check_trip_train_reference(self, trip_id: str, train_id: str) -> str | None:
+        """Validate canonical train/trip prerequisites through read-only SQL."""
+        if not self.active:
+            return None
+        rows = _run_sql(
+            "SELECT EXISTS (SELECT 1 FROM public.trains WHERE id = %s::uuid) AS train_exists, "
+            "EXISTS (SELECT 1 FROM public.trips WHERE id = %s::uuid) AS trip_exists, "
+            "(SELECT train_id::text FROM public.trips WHERE id = %s::uuid) AS trip_train_id" % (
+                _esc(train_id), _esc(trip_id), _esc(trip_id),
+            ),
+            timeout=10,
+        )
+        if not rows:
+            raise RuntimeError("reference validation returned no rows")
+        row = rows[0]
+        if not row.get("train_exists"):
+            return "unknown_train_reference"
+        if not row.get("trip_exists"):
+            return "unknown_trip_reference"
+        if str(row.get("trip_train_id")) != str(train_id):
+            return "trip_train_binding_mismatch"
+        return None
 
     def upsert_session(self, session_id: str, trip_id: str, train_id: str,
                        status: str, started_at: datetime,

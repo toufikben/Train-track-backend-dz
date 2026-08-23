@@ -542,6 +542,7 @@ def nearby_trains(
 @app.post("/monitor-sessions")
 def create_monitor_session(body: CreateMonitorSessionIn) -> dict[str, Any]:
     _validate_db_uuid_fields(("trip_id", body.trip_id), ("train_id", body.train_id))
+    _validate_trip_train_reference(body.trip_id, body.train_id)
     sid = str(uuid4())
     row = SessionRow(
         id=sid,
@@ -551,12 +552,18 @@ def create_monitor_session(body: CreateMonitorSessionIn) -> dict[str, Any]:
         status="STARTING",
         started_at=utcnow(),
     )
+    # Persist first. A failed DB write must not leave a phantom cache row.
+    try:
+        if getattr(store, "upsert_session", None):
+            store.upsert_session(sid, row.trip_id, row.train_id, row.status,
+                                 row.started_at, row.anonymous_monitor_id)
+    except Exception as exc:  # noqa: BLE001
+        print(f"monitor session persistence failed: {type(exc).__name__}")
+        raise HTTPException(status_code=503, detail="storage_unavailable") from None
     store.sessions[sid] = row
-    if getattr(store, "upsert_session", None):
-        store.upsert_session(sid, row.trip_id, row.train_id, row.status,
-                             row.started_at, row.anonymous_monitor_id)
-    # Ensure trip shell exists for stops/ETA later
-    if body.trip_id not in store.trips:
+    # MemoryStore-only shell behavior is retained for local development. A
+    # DB-backed adapter must never invent a trip absent from canonical tables.
+    if not getattr(store, "active", False) and body.trip_id not in store.trips:
         store.trips[body.trip_id] = {
             "id": body.trip_id,
             "train_id": body.train_id,
@@ -616,12 +623,30 @@ def _assert_observation_binding(body: ObservationIn) -> None:
         raise HTTPException(status_code=409, detail="session_binding_mismatch")
 
 
+def _validate_trip_train_reference(trip_id: str, train_id: str) -> None:
+    """Validate DB-backed references before creating any session cache entry."""
+    checker = getattr(store, "check_trip_train_reference", None)
+    if not getattr(store, "active", False) or checker is None:
+        return
+    try:
+        error_code = checker(trip_id, train_id)
+    except Exception as exc:  # noqa: BLE001
+        # Keep SQL/DSN details out of the public API and logs.
+        print(f"monitor session reference check failed: {type(exc).__name__}")
+        raise HTTPException(status_code=503, detail="storage_unavailable") from None
+    if error_code:
+        raise HTTPException(status_code=409, detail=error_code)
+
+
 @app.post("/observations")
 def post_observation(body: ObservationIn) -> dict[str, Any]:
     _validate_db_uuid_fields(
         ("session_id", body.session_id), ("trip_id", body.trip_id), ("train_id", body.train_id)
     )
+    _validate_trip_train_reference(body.trip_id, body.train_id)
     _assert_observation_binding(body)
+    if getattr(store, "active", False) and body.session_id not in store.sessions:
+        raise HTTPException(status_code=409, detail="session_not_found")
     key = f"{body.session_id}:{body.train_id}"
     if not observation_limiter.allow(key):
         raise HTTPException(429, "rate_limited")

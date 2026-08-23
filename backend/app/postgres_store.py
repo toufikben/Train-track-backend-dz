@@ -216,7 +216,33 @@ class PostgresStore:
                         wait_reason_ar=wait_reason,
                     )
 
-    # ---------- pipeline writes ----------
+    # ---------- reference validation and pipeline writes ----------
+
+    def check_trip_train_reference(self, trip_id: str, train_id: str) -> str | None:
+        """Validate canonical train/trip foreign-key prerequisites.
+
+        Returns a stable API-facing error code, or None when the references
+        exist and the trip belongs to the supplied train. The query is read-only
+        and intentionally runs before any in-memory cache mutation.
+        """
+        if not self.active:
+            return None
+        with self._conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT EXISTS (SELECT 1 FROM public.trains WHERE id = %s::uuid), "
+                    "EXISTS (SELECT 1 FROM public.trips WHERE id = %s::uuid), "
+                    "(SELECT train_id::text FROM public.trips WHERE id = %s::uuid)",
+                    (train_id, trip_id, trip_id),
+                )
+                train_exists, trip_exists, trip_train_id = cur.fetchone()
+        if not train_exists:
+            return "unknown_train_reference"
+        if not trip_exists:
+            return "unknown_trip_reference"
+        if str(trip_train_id) != str(train_id):
+            return "trip_train_binding_mismatch"
+        return None
 
     def upsert_session(self, session_id: str, trip_id: str, train_id: str,
                        status: str, started_at: datetime,
@@ -322,6 +348,30 @@ class PostgresStore:
             for tid in removed:
                 self.aggregates.pop(tid, None)
         return removed
+
+    def load_trip_stops(self, _path: str | None = None) -> int:
+        """Reload canonical trip stops from Postgres into the in-memory cache."""
+        if not self.active:
+            return 0
+        with self._lock:
+            with self._conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "SELECT ts.trip_id, ts.station_id, s.name_ar, ts.sequence, "
+                        "ST_Y(s.location), ST_X(s.location) "
+                        "FROM public.trip_stops ts "
+                        "JOIN public.stations s ON s.id = ts.station_id "
+                        "ORDER BY ts.trip_id, ts.sequence"
+                    )
+                    self.trip_stops.clear()
+                    for trip_id, station_id, name, sequence, lat, lon in cur.fetchall():
+                        self.trip_stops.setdefault(str(trip_id), []).append(
+                            TripStopRow(
+                                station_id=str(station_id), station_name=name,
+                                sequence=int(sequence), latitude=float(lat), longitude=float(lon),
+                            )
+                        )
+                    return sum(len(rows) for rows in self.trip_stops.values())
 
     def save_trip_stops(self, trip_id: str, rows: list[TripStopRow]) -> None:
         if not self.active:
