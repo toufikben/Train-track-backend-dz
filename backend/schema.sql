@@ -134,18 +134,31 @@ CREATE TABLE gps_observations (
     observed_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     is_valid BOOLEAN DEFAULT FALSE,
-    rejection_reason TEXT
+    rejection_reason TEXT,
+    validation_score DOUBLE PRECISION CHECK (validation_score IS NULL OR validation_score BETWEEN 0 AND 1)
 );
 
 CREATE TABLE aggregated_train_positions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     train_id UUID REFERENCES trains(id),
-    trip_id UUID REFERENCES trips(id),
+    trip_id UUID REFERENCES trips(id) UNIQUE,
     location GEOMETRY(Point, 4326) NOT NULL,
     estimated_speed_mps FLOAT,
     heading_deg FLOAT,
     confidence TEXT CHECK (confidence IN ('HIGH','MEDIUM','LOW','UNKNOWN')),
+    confidence_score DOUBLE PRECISION CHECK (confidence_score IS NULL OR confidence_score BETWEEN 0 AND 1),
+    freshness TEXT CHECK (freshness IS NULL OR freshness IN ('LIVE','RECENT','AGING','STALE','UNKNOWN')),
+    truth TEXT CHECK (truth IS NULL OR truth IN ('OBSERVED','ESTIMATED','UNKNOWN')),
     source_count INTEGER DEFAULT 0,
+    next_station_id UUID REFERENCES stations(id),
+    next_station_name_ar TEXT,
+    station_event TEXT,
+    eta_station_id UUID REFERENCES stations(id),
+    eta_min_sec INTEGER,
+    eta_max_sec INTEGER,
+    eta_confidence TEXT,
+    wait_decision TEXT,
+    wait_reason_ar TEXT,
     last_observed_at TIMESTAMPTZ,
     last_estimated_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW(),

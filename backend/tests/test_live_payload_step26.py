@@ -2,9 +2,13 @@
 return the full live payload (position + ETA + next station), not just id/
 status. Verifies the fix for the missing position fields regression.
 """
+import os
+import sys
 from datetime import datetime, timezone, timedelta
 
-from backend.app.main import store, _live_from_aggregate
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir))
+
+from app.main import store, _live_from_aggregate
 
 # Build a fake publishable aggregate
 now = datetime.now(timezone.utc)
@@ -40,7 +44,7 @@ for k in ("last_observed_position", "estimated_position", "eta", "next_station",
     checks.append(("live_payload_has_" + k, live.get(k) is not None))
 
 # 2. /trains returns full payload per train
-from backend.app.main import get_trains, get_train, nearby_trains
+from app.main import get_trains, get_train, nearby_trains
 
 trains = get_trains()
 assert trains, "get_trains empty"

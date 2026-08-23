@@ -102,8 +102,7 @@ class PostgresStore:
                 with conn.cursor() as cur:
                     cur.execute(
                         "SELECT id, name_ar, name_fr, name_en, "
-                        "ST_Y(location), ST_X(location), "
-                        "COALESCE(railway_line_ids, '[]'::jsonb)::text "
+                        "ST_Y(location), ST_X(location), '[]'::text "
                         "FROM public.stations WHERE deleted_at IS NULL"
                     )
                     self.stations.clear()
@@ -129,8 +128,9 @@ class PostgresStore:
                     with self._conn() as conn:
                         with conn.cursor() as cur:
                             cur.execute(
-                                "SELECT id, line_id, ST_AsGeoJSON(geometry), distance_meters, direction, source_kind "
-                                "FROM public.railway_segments WHERE deleted_at IS NULL"
+                                "SELECT id, line_id, ST_AsGeoJSON(geometry), distance_meters, "
+                                "direction, 'UNKNOWN'::text AS source_kind "
+                                "FROM public.railway_segments"
                             )
                             rows = cur.fetchall()
                             if rows:
@@ -172,8 +172,11 @@ class PostgresStore:
                         last_observation_at=last_obs,
                     )
                 cur.execute(
-                    "SELECT trip_id, station_id, station_name, sequence, latitude, longitude "
-                    "FROM public.trip_stops ORDER BY trip_id, sequence"
+                    "SELECT ts.trip_id, ts.station_id, s.name_ar, ts.sequence, "
+                    "ST_Y(s.location), ST_X(s.location) "
+                    "FROM public.trip_stops ts "
+                    "JOIN public.stations s ON s.id = ts.station_id "
+                    "ORDER BY ts.trip_id, ts.sequence"
                 )
                 for (trip_id, st_id, st_name, seq, lat, lon) in cur.fetchall():
                     self.trip_stops.setdefault(str(trip_id), []).append(
@@ -184,16 +187,33 @@ class PostgresStore:
                     )
                 cur.execute(
                     "SELECT trip_id, train_id, ST_Y(location), ST_X(location), "
-                    "truth, confidence, freshness, source_count, last_observed_at, updated_at "
-                    "FROM public.aggregated_train_positions WHERE truth <> 'UNKNOWN'"
+                    "estimated_speed_mps, heading_deg, confidence, confidence_score, "
+                    "freshness, source_count, last_observed_at, last_estimated_at, truth, "
+                    "next_station_id, next_station_name_ar, station_event, eta_station_id, "
+                    "eta_min_sec, eta_max_sec, eta_confidence, wait_decision, wait_reason_ar "
+                    "FROM public.aggregated_train_positions "
+                    "WHERE truth IS NULL OR truth <> 'UNKNOWN'"
                 )
-                for (trip_id, train_id, lat, lon, truth, conf, fresh, sc, lob, upd) in cur.fetchall():
+                for (
+                    trip_id, train_id, lat, lon, speed, heading, conf, conf_score,
+                    fresh, sc, lob, last_est, truth, next_id, next_name, station_event,
+                    eta_station, eta_min, eta_max, eta_conf, wait_dec, wait_reason,
+                ) in cur.fetchall():
                     self.aggregates[str(trip_id)] = AggregateRow(
                         trip_id=str(trip_id), train_id=str(train_id),
-                        latitude=lat, longitude=lon,
-                        truth=str(truth), confidence=str(conf), freshness=str(fresh),
-                        source_count=int(sc),
-                        last_observed_at=lob, last_estimated_at=upd or lob,
+                        latitude=lat, longitude=lon, speed_mps=speed,
+                        heading_deg=heading, confidence=str(conf or "UNKNOWN"),
+                        confidence_score=float(conf_score or 0.0),
+                        freshness=str(fresh or "UNKNOWN"), source_count=int(sc or 0),
+                        last_observed_at=lob or utcnow(),
+                        last_estimated_at=last_est or lob or utcnow(),
+                        truth=str(truth or "UNKNOWN"),
+                        next_station_id=str(next_id) if next_id else None,
+                        next_station_name_ar=next_name, station_event=station_event,
+                        eta_station_id=str(eta_station) if eta_station else None,
+                        eta_min_sec=eta_min, eta_max_sec=eta_max,
+                        eta_confidence=eta_conf, wait_decision=wait_dec,
+                        wait_reason_ar=wait_reason,
                     )
 
     # ---------- pipeline writes ----------
@@ -227,13 +247,13 @@ class PostgresStore:
             with conn.cursor() as cur:
                 cur.execute(
                     "INSERT INTO public.gps_observations "
-                    "(id, session_id, trip_id, train_id, latitude, longitude, "
-                    "accuracy_m, speed_mps, heading_deg, observed_at, "
-                    "accepted, rejection_reason, validation_score) "
-                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                    "(id, session_id, trip_id, train_id, location, accuracy_meters, "
+                    "speed_mps, heading_deg, observed_at, is_valid, rejection_reason, "
+                    "validation_score) "
+                    "VALUES (%s,%s,%s,%s,ST_SetSRID(ST_MakePoint(%s,%s),4326),%s,%s,%s,%s,%s,%s,%s) "
                     "ON CONFLICT (id) DO NOTHING",
                     (row.id, row.session_id, row.trip_id, row.train_id,
-                     row.latitude, row.longitude, row.accuracy, row.speed,
+                     row.longitude, row.latitude, row.accuracy, row.speed,
                      row.heading, row.observed_at, row.accepted,
                      row.rejection_reason, row.validation_score),
                 )
@@ -251,15 +271,19 @@ class PostgresStore:
                     return
                 cur.execute(
                     "INSERT INTO public.aggregated_train_positions "
-                    "(trip_id, train_id, latitude, longitude, truth, confidence, freshness, "
-                    "source_count, next_station_id, next_station_name_ar, station_event, "
-                    "eta_station_id, eta_min_sec, eta_max_sec, eta_confidence, "
-                    "wait_decision, wait_reason_ar, last_observed_at, updated_at) "
-                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,now()) "
+                    "(trip_id, train_id, location, estimated_speed_mps, heading_deg, "
+                    "confidence, confidence_score, freshness, truth, source_count, "
+                    "next_station_id, next_station_name_ar, station_event, eta_station_id, "
+                    "eta_min_sec, eta_max_sec, eta_confidence, wait_decision, wait_reason_ar, "
+                    "last_observed_at, last_estimated_at, updated_at) "
+                    "VALUES (%s, %s, ST_SetSRID(ST_MakePoint(%s,%s),4326), "
+                    "%s, %s, %s, %s, %s, %s, %s, %s, %s, "
+                    "%s, %s, %s, %s, %s, %s, %s, %s, %s, now()) "
                     "ON CONFLICT (trip_id) DO UPDATE SET "
-                    "train_id=EXCLUDED.train_id, latitude=EXCLUDED.latitude, "
-                    "longitude=EXCLUDED.longitude, truth=EXCLUDED.truth, "
-                    "confidence=EXCLUDED.confidence, freshness=EXCLUDED.freshness, "
+                    "train_id=EXCLUDED.train_id, location=EXCLUDED.location, "
+                    "estimated_speed_mps=EXCLUDED.estimated_speed_mps, heading_deg=EXCLUDED.heading_deg, "
+                    "confidence=EXCLUDED.confidence, confidence_score=EXCLUDED.confidence_score, "
+                    "freshness=EXCLUDED.freshness, truth=EXCLUDED.truth, "
                     "source_count=EXCLUDED.source_count, "
                     "next_station_id=EXCLUDED.next_station_id, "
                     "next_station_name_ar=EXCLUDED.next_station_name_ar, "
@@ -269,13 +293,14 @@ class PostgresStore:
                     "eta_confidence=EXCLUDED.eta_confidence, "
                     "wait_decision=EXCLUDED.wait_decision, "
                     "wait_reason_ar=EXCLUDED.wait_reason_ar, "
-                    "last_observed_at=EXCLUDED.last_observed_at, updated_at=now()",
-                    (row.trip_id, row.train_id, row.latitude, row.longitude,
-                     row.truth, row.confidence, row.freshness, row.source_count,
-                     row.next_station_id, row.next_station_name_ar, row.station_event,
-                     row.eta_station_id, row.eta_min_sec, row.eta_max_sec,
-                     row.eta_confidence, row.wait_decision, row.wait_reason_ar,
-                     row.last_observed_at),
+                    "last_observed_at=EXCLUDED.last_observed_at, last_estimated_at=EXCLUDED.last_estimated_at, "
+                    "updated_at=now()",
+                    (row.trip_id, row.train_id, row.longitude, row.latitude,
+                     row.speed_mps, row.heading_deg, row.confidence, row.confidence_score,
+                     row.freshness, row.truth, row.source_count, row.next_station_id,
+                     row.next_station_name_ar, row.station_event, row.eta_station_id,
+                     row.eta_min_sec, row.eta_max_sec, row.eta_confidence, row.wait_decision,
+                     row.wait_reason_ar, row.last_observed_at, row.last_estimated_at),
                 )
 
     def evict_stale_db(self, max_age: float = DEFAULT_MAX_AGE_SECONDS) -> list[str]:
@@ -307,23 +332,22 @@ class PostgresStore:
                 for r in rows:
                     cur.execute(
                         "INSERT INTO public.trip_stops "
-                        "(trip_id, station_id, station_name, sequence, latitude, longitude) "
-                        "VALUES (%s,%s,%s,%s,%s,%s)",
-                        (trip_id, r.station_id, r.station_name, r.sequence,
-                         r.latitude, r.longitude),
+                        "(trip_id, station_id, sequence) VALUES (%s,%s,%s)",
+                        (trip_id, r.station_id, r.sequence),
                     )
 
     def save_report(self, rec: dict) -> None:
+        """Persist a community report using the canonical report contract."""
         if not self.active:
             return
         with self._conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(
                     "INSERT INTO public.community_reports "
-                    "(id, session_id, trip_id, train_id, event_kind, description_ar, created_at) "
+                    "(id, train_id, trip_id, station_id, report_type, description, created_at) "
                     "VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING",
-                    (rec.get("id"), rec.get("session_id"), rec.get("trip_id"),
-                     rec.get("train_id"), rec.get("report_type"),
+                    (rec.get("id"), rec.get("train_id"), rec.get("trip_id"),
+                     rec.get("station_id"), rec.get("report_type"),
                      rec.get("description"), rec.get("created_at")),
                 )
 
