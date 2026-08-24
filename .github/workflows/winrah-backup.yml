@@ -1,0 +1,109 @@
+name: WinRah backup + restore test
+
+on:
+  workflow_dispatch: {}
+  # Enable only after the first manual run succeeds:
+  # schedule:
+  #   - cron: "0 3 * * 0"
+
+permissions:
+  contents: read
+
+jobs:
+  backup-and-restore-test:
+    runs-on: ubuntu-latest
+    container: postgres:17-alpine
+    services:
+      restore-target:
+        image: postgis/postgis:17-3.4
+        env:
+          POSTGRES_PASSWORD: restoretest
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      SUPA_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+    steps:
+      - name: Preflight
+        shell: sh
+        run: |
+          set -eu
+          [ -n "$SUPA_DB_URL" ] || { echo "::error::secret SUPABASE_DB_URL missing"; exit 1; }
+          pg_dump --version
+          pg_restore --version
+          psql --version
+
+      - name: Dump public schema
+        shell: sh
+        run: |
+          set -eu
+          ts=$(date -u +%Y%m%d_%H%M%S)
+          pg_dump "$SUPA_DB_URL" \
+            --schema=public \
+            --exclude-table=public.spatial_ref_sys \
+            --format=custom \
+            --compress=6 \
+            --file="winrah_${ts}.dump"
+          sha256sum "winrah_${ts}.dump" | tee checksums.sha256
+          echo "DUMP_FILE=winrah_${ts}.dump" >> "$GITHUB_ENV"
+
+      - name: Wait for restore target
+        shell: sh
+        run: |
+          set -eu
+          for i in $(seq 1 30); do
+            PGPASSWORD=restoretest pg_isready -h restore-target -U postgres && exit 0
+            sleep 2
+          done
+          echo "::error::restore target did not become ready"
+          exit 1
+
+      - name: Restore into non-production target and verify counts
+        shell: sh
+        env:
+          PGPASSWORD: restoretest
+        run: |
+          set -eu
+          createdb -h restore-target -U postgres winrah_test
+          pg_restore \
+            -h restore-target \
+            -U postgres \
+            -d winrah_test \
+            --no-owner \
+            --no-privileges \
+            --exit-on-error \
+            "$DUMP_FILE"
+          st=$(psql -h restore-target -U postgres -d winrah_test -tAc \
+            "SELECT count(*) FROM public.stations;")
+          tr=$(psql -h restore-target -U postgres -d winrah_test -tAc \
+            "SELECT count(*) FROM public.trips;")
+          echo "stations=$st trips=$tr"
+          [ "$st" = "28" ] || { echo "::error::stations != 28"; exit 1; }
+          [ "$tr" = "105" ] || { echo "::error::trips != 105"; exit 1; }
+          echo "RESTORE_VERIFIED=true" >> "$GITHUB_ENV"
+
+      - name: Sanitized summary
+        if: always()
+        shell: sh
+        run: |
+          {
+            echo "### Backup result (sanitized)"
+            echo '```'
+            if [ -n "${DUMP_FILE:-}" ] && [ -f "$DUMP_FILE" ]; then echo "dump=success"; else echo "dump=failed_or_not_run"; fi
+            if [ -f checksums.sha256 ]; then echo "checksum=$(cut -d' ' -f1 checksums.sha256)"; else echo "checksum=not_available"; fi
+            if [ "${RESTORE_VERIFIED:-false}" = "true" ]; then echo "restore=success"; else echo "restore=failed_or_not_verified"; fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload dump artifact outside Supabase
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.DUMP_FILE }}
+          path: |
+            ${{ env.DUMP_FILE }}
+            checksums.sha256
+          retention-days: 90
