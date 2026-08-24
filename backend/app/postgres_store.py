@@ -103,9 +103,19 @@ class PostgresStore:
             with self._conn() as conn:
                 with conn.cursor() as cur:
                     cur.execute(
-                        "SELECT id, name_ar, name_fr, name_en, "
-                        "ST_Y(location), ST_X(location), '[]'::text "
-                        "FROM public.stations WHERE deleted_at IS NULL"
+                        "SELECT s.id, s.name_ar, s.name_fr, s.name_en, "
+                        "ST_Y(s.location), ST_X(s.location), "
+                        "COALESCE(line_map.line_ids, '[]'::json)::text "
+                        "FROM public.stations AS s "
+                        "LEFT JOIN ("
+                        "SELECT ts.station_id, json_agg(DISTINCT t.line_id) "
+                        "FILTER (WHERE t.line_id IS NOT NULL) AS line_ids "
+                        "FROM public.trip_stops AS ts "
+                        "JOIN public.trips AS t ON t.id = ts.trip_id "
+                        "WHERE t.deleted_at IS NULL "
+                        "GROUP BY ts.station_id"
+                        ") AS line_map ON line_map.station_id = s.id "
+                        "WHERE s.deleted_at IS NULL"
                     )
                     self.stations.clear()
                     for (sid, ar, fr, en, lat, lon, lines_j) in cur.fetchall():
