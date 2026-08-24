@@ -123,6 +123,18 @@ def require_admin_key(x_admin_key: str | None = Header(default=None, alias="X-Ad
         raise HTTPException(status_code=401, detail="admin_unauthorized")
 
 
+def require_public_writes_enabled() -> None:
+    """Keep public write paths closed until Auth/ownership is deployed.
+
+    Local MemoryStore tests remain writable. Any Postgres or SQL-proxy runtime
+    requires an explicit operator-controlled flag; the default is deny.
+    """
+    if getattr(store, "active", False) and os.environ.get(
+        "WINRAH_PUBLIC_WRITES_ENABLED", "false"
+    ).strip().lower() not in {"1", "true", "yes"}:
+        raise HTTPException(status_code=503, detail="public_writes_disabled")
+
+
 def _validate_db_uuid_fields(*fields: tuple[str, str | None]) -> None:
     """Reject non-UUID identifiers only when a UUID-backed DB adapter is active.
 
@@ -571,7 +583,7 @@ def nearby_trains(
 
 # ─── Monitor sessions ────────────────────────────────────────────────────────
 
-@app.post("/monitor-sessions")
+@app.post("/monitor-sessions", dependencies=[Depends(require_public_writes_enabled)])
 def create_monitor_session(body: CreateMonitorSessionIn) -> dict[str, Any]:
     _validate_db_uuid_fields(("trip_id", body.trip_id), ("train_id", body.train_id))
     _validate_trip_train_reference(body.trip_id, body.train_id)
@@ -617,7 +629,7 @@ def create_monitor_session(body: CreateMonitorSessionIn) -> dict[str, Any]:
     }
 
 
-@app.post("/monitor-sessions/{session_id}/end")
+@app.post("/monitor-sessions/{session_id}/end", dependencies=[Depends(require_public_writes_enabled)])
 def end_monitor_session(session_id: str) -> dict[str, Any]:
     row = store.sessions.get(session_id)
     if not row:
@@ -670,7 +682,7 @@ def _validate_trip_train_reference(trip_id: str, train_id: str) -> None:
         raise HTTPException(status_code=409, detail=error_code)
 
 
-@app.post("/observations")
+@app.post("/observations", dependencies=[Depends(require_public_writes_enabled)])
 def post_observation(body: ObservationIn) -> dict[str, Any]:
     _validate_db_uuid_fields(
         ("session_id", body.session_id), ("trip_id", body.trip_id), ("train_id", body.train_id)
@@ -722,7 +734,7 @@ def post_observation(body: ObservationIn) -> dict[str, Any]:
     return result
 
 
-@app.post("/observations/batch")
+@app.post("/observations/batch", dependencies=[Depends(require_public_writes_enabled)])
 def post_observation_batch(body: list[ObservationIn]) -> list[dict[str, Any]]:
     return [post_observation(item) for item in body]
 
@@ -763,7 +775,7 @@ def set_trip_stops(body: TripStopsIn) -> dict[str, Any]:
 
 # ─── Reports (evidence only — never auto-fabricated) ─────────────────────────
 
-@app.post("/reports")
+@app.post("/reports", dependencies=[Depends(require_public_writes_enabled)])
 def submit_report(body: ReportIn) -> dict[str, str]:
     _validate_db_uuid_fields(
         ("train_id", body.train_id), ("trip_id", body.trip_id), ("station_id", body.station_id)
