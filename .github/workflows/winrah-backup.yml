@@ -68,6 +68,10 @@ jobs:
         run: |
           set -eu
           createdb -h restore-target -U postgres winrah_test
+          # The service image has PostGIS installed, but the new database
+          # needs the extension enabled before restoring geometry columns.
+          psql -h restore-target -U postgres -d winrah_test -v ON_ERROR_STOP=1 \
+            -c 'CREATE EXTENSION IF NOT EXISTS postgis;'
           # The PostGIS image already has the public schema. Exclude only
           # the dump's CREATE SCHEMA public entry; do not drop the target schema.
           pg_restore --list "$DUMP_FILE" | grep -vE ';.*[[:space:]]SCHEMA[[:space:]]+-[[:space:]]+public([[:space:]]|$)' > restore.list
