@@ -26,6 +26,7 @@ else:
 print(f"postgres_store_psycopg2: psycopg2={_PSYCOPG2_VERSION} DATABASE_URL={'set' if database_url() else 'NOT set'}")
 
 from .store import SessionRow, StationRow, TripStopRow, AggregateRow, utcnow
+from .trip_registry import build_trip_registry
 from .ttl import DEFAULT_MAX_AGE_SECONDS
 
 
@@ -37,6 +38,7 @@ class PostgresStorePsycopg2:
         self.aggregates: dict[str, AggregateRow] = {}
         self.stations: dict[str, StationRow] = {}
         self.trip_stops: dict[str, list[TripStopRow]] = {}
+        self.trip_metadata: dict[str, dict] = {}
         self.trips: dict[str, dict] = {}
         self.reports: list[dict] = []
         self.railway_segments: list[list[list[float]]] = []
@@ -150,6 +152,27 @@ class PostgresStorePsycopg2:
                             sequence=int(seq), latitude=lat, longitude=lon,
                         )
                     )
+                cur.execute(
+                    "SELECT id, train_id, line_id, direction, scheduled_departure, "
+                    "scheduled_arrival, status FROM public.trips "
+                    "WHERE deleted_at IS NULL"
+                )
+                self.trip_metadata = {
+                    str(trip_id): {
+                        "train_id": train_id,
+                        "line_id": line_id,
+                        "direction": direction,
+                        "scheduled_departure": scheduled_departure,
+                        "scheduled_arrival": scheduled_arrival,
+                        "status": status,
+                    }
+                    for (
+                        trip_id, train_id, line_id, direction,
+                        scheduled_departure, scheduled_arrival, status,
+                    ) in cur.fetchall()
+                }
+                self.trips.clear()
+                self.trips.update(build_trip_registry(self.trip_stops, self.trip_metadata))
                 cur.execute(
                     "SELECT trip_id, train_id, ST_Y(location), ST_X(location), "
                     "estimated_speed_mps, heading_deg, confidence, confidence_score, "
@@ -304,8 +327,17 @@ class PostgresStorePsycopg2:
                 self.aggregates.pop(tid, None)
         return removed
 
+    def load_trips_registry(self) -> int:
+        """Rebuild public trip shells from canonical trip-stop rows."""
+        if not self.active:
+            return 0
+        with self._lock:
+            self.trips.clear()
+            self.trips.update(build_trip_registry(self.trip_stops, self.trip_metadata))
+            return len(self.trips)
+
     def load_trip_stops(self, _path: str | None = None) -> int:
-        """Reload canonical trip stops from Postgres into the in-memory cache."""
+        """Reload canonical trip stops and rebuild the public trip index."""
         if not self.active:
             return 0
         with self._lock:
@@ -326,7 +358,29 @@ class PostgresStorePsycopg2:
                                 sequence=int(sequence), latitude=float(lat), longitude=float(lon),
                             )
                         )
-                    return sum(len(rows) for rows in self.trip_stops.values())
+                    cur.execute(
+                        "SELECT id, train_id, line_id, direction, scheduled_departure, "
+                        "scheduled_arrival, status FROM public.trips "
+                        "WHERE deleted_at IS NULL"
+                    )
+                    self.trip_metadata = {
+                        str(trip_id): {
+                            "train_id": train_id,
+                            "line_id": line_id,
+                            "direction": direction,
+                            "scheduled_departure": scheduled_departure,
+                            "scheduled_arrival": scheduled_arrival,
+                            "status": status,
+                        }
+                        for (
+                            trip_id, train_id, line_id, direction,
+                            scheduled_departure, scheduled_arrival, status,
+                        ) in cur.fetchall()
+                    }
+                    total_stops = sum(len(rows) for rows in self.trip_stops.values())
+                    self.trips.clear()
+                    self.trips.update(build_trip_registry(self.trip_stops, self.trip_metadata))
+                    return total_stops
 
     def save_trip_stops(self, trip_id: str, rows: list[TripStopRow]) -> None:
         if not self.active:
