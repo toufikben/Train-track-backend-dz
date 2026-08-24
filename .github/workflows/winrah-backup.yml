@@ -72,6 +72,17 @@ jobs:
           # needs the extension enabled before restoring geometry columns.
           psql -h restore-target -U postgres -d winrah_test -v ON_ERROR_STOP=1 \
             -c 'CREATE EXTENSION IF NOT EXISTS postgis;'
+          # Supabase policies may reference these managed roles. Create only
+          # non-login placeholders in the disposable restore target.
+          psql -h restore-target -U postgres -d winrah_test -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN; END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role NOLOGIN; END IF;
+          END
+          $$;
+          SQL
           # The PostGIS image already has the public schema. Exclude only
           # the dump's CREATE SCHEMA public entry; do not drop the target schema.
           pg_restore --list "$DUMP_FILE" | grep -vE ';.*[[:space:]]SCHEMA[[:space:]]+-[[:space:]]+public([[:space:]]|$)' > restore.list
