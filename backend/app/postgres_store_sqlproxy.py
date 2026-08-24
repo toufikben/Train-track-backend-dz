@@ -22,11 +22,13 @@ from .ttl import DEFAULT_MAX_AGE_SECONDS
 
 _SQLPROXY_URL = None
 _SQLPROXY_KEY = None
+_SQLPROXY_PROXY_SECRET = None
 
 try:
     import os
     _SQLPROXY_URL = (os.environ.get("SQLPROXY_URL") or "").strip()
     _SQLPROXY_KEY = (os.environ.get("SQLPROXY_KEY") or "").strip()
+    _SQLPROXY_PROXY_SECRET = (os.environ.get("SQLPROXY_PROXY_SECRET") or "").strip()
 except Exception:  # pragma: no cover
     pass
 
@@ -47,14 +49,18 @@ _LINE_ID_MAP: dict[str, str] = {
 _VERSION = "?"
 if _requests is not None:
     _VERSION = getattr(_requests, "__version__", "?")
-print(f"postgres_store_sqlproxy: requests={_VERSION} SQLPROXY_URL={'set' if _SQLPROXY_URL else 'NOT set'}")
+print(f"postgres_store_sqlproxy: requests={_VERSION} SQLPROXY_URL={'set' if _SQLPROXY_URL else 'NOT set'} proxy_secret={'set' if _SQLPROXY_PROXY_SECRET else 'NOT set'}")
 
 
 def _run_sql(query: str, timeout: float = 15.0) -> list[dict]:
     """Execute one statement through the sql-proxy Edge Function."""
     resp = _requests.post(
         _SQLPROXY_URL,
-        headers={"Content-Type": "application/json", "X-Api-Key": _SQLPROXY_KEY},
+        headers={
+            "Content-Type": "application/json",
+            "X-Api-Key": _SQLPROXY_KEY,
+            "X-Proxy-Secret": _SQLPROXY_PROXY_SECRET,
+        },
         json={"query": query},
         timeout=timeout,
     )
@@ -81,7 +87,8 @@ class PostgresStoreSqlproxy:
         self._obs_limit = 2000
         self._report_limit = 500
         self._active = False
-        if _SQLPROXY_URL and _SQLPROXY_KEY and _requests is not None:
+        if (_SQLPROXY_URL and _SQLPROXY_KEY and _SQLPROXY_PROXY_SECRET
+                and _requests is not None):
             try:
                 self._boot()
             except Exception as exc:  # noqa: BLE001
