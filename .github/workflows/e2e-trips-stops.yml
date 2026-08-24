@@ -51,7 +51,7 @@ jobs:
       - name: Prepare local E2E database
         env:
           WINRAH_E2E_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/winrah_e2e
-        run: python backend/tests/prepare_e2e_database.py
+        run: python backend/tests/prepare_e2e_database.py --reset
 
       - name: Run trips and stops E2E tests
         env:

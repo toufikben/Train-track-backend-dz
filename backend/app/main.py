@@ -18,7 +18,9 @@ from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnec
 from fastapi.responses import StreamingResponse, HTMLResponse
 import asyncio
 import json
+import os
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, Field
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -65,12 +67,20 @@ app = FastAPI(
     description="Community railway tracking — OBSERVED / ESTIMATED / UNKNOWN",
 )
 
+_cors_origins = [
+    origin.strip().rstrip("/")
+    for origin in os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_cors_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Accept", "Authorization", "Content-Type", "Origin", "X-Requested-With"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 
 # ─── Schemas aligned with Android DTOs ───────────────────────────────────────
