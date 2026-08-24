@@ -942,12 +942,12 @@ def get_favorites() -> list:
     return []
 
 
-@app.post("/favorites")
+@app.post("/favorites", dependencies=[Depends(require_public_writes_enabled)])
 def add_favorite(body: dict[str, Any]) -> dict[str, Any]:
     return body
 
 
-@app.delete("/favorites/{fav_id}")
+@app.delete("/favorites/{fav_id}", dependencies=[Depends(require_public_writes_enabled)])
 def delete_favorite(fav_id: str) -> dict[str, str]:
     return {"status": "ok"}
 

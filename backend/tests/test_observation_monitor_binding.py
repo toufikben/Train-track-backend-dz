@@ -169,6 +169,17 @@ def test_db_mode_rejects_orphan_observation(monkeypatch) -> None:
     assert store.aggregates == {}
 
 
+def test_active_store_denies_favorite_writes_by_default(monkeypatch) -> None:
+    monkeypatch.setattr(store, "active", True, raising=False)
+    monkeypatch.delenv("WINRAH_PUBLIC_WRITES_ENABLED", raising=False)
+    add_response = client.post("/favorites", json={"type": "STATION", "value": "any"})
+    delete_response = client.delete("/favorites/any")
+    assert add_response.status_code == 503
+    assert delete_response.status_code == 503
+    assert add_response.json()["detail"] == "public_writes_disabled"
+    assert delete_response.json()["detail"] == "public_writes_disabled"
+
+
 def test_db_mode_rejects_non_uuid_observation_ids(monkeypatch) -> None:
     monkeypatch.setenv("WINRAH_PUBLIC_WRITES_ENABLED", "true")
     monkeypatch.setattr(store, "active", True, raising=False)
