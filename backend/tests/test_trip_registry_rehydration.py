@@ -2,6 +2,7 @@ import os
 import sys
 from contextlib import contextmanager
 from threading import RLock
+from types import SimpleNamespace
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir))
 
@@ -9,6 +10,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir))
 from app.main import store as _app_store  # noqa: F401
 from app.postgres_store import PostgresStore
 from app.postgres_store_psycopg2 import PostgresStorePsycopg2
+from app.trip_registry import build_trip_registry
 
 
 ROWS = [
@@ -98,6 +100,42 @@ def _assert_registry(adapter):
     assert adapter.trips["elaffroun-aga-1058-a"]["train_id"] == "train-c"
     assert adapter.trips["elaffroun-aga-1058-a"]["line_id"] == "line-c"
     assert adapter.trips["elaffroun-aga-1058-a"]["direction"] == "INBOUND"
+
+    adapter.trips["stale-trip"] = {"id": "stale-trip"}
+    rebuilt_count = adapter.load_trips_registry()
+    assert rebuilt_count == 3
+    assert set(adapter.trips) == {
+        "zeralda-aga-1501", "aga-elaffroun-1025", "elaffroun-aga-1058-a"
+    }
+    assert adapter.trips["zeralda-aga-1501"]["line_id"] == "line-a"
+
+
+def test_trip_registry_ignores_empty_trips_and_orders_stops():
+    trip_stops = {
+        "uuid-trip": [
+            SimpleNamespace(station_id="last", sequence=3),
+            SimpleNamespace(station_id="first", sequence=1),
+        ],
+        "empty-trip": [],
+    }
+    metadata = {
+        "uuid-trip": {
+            "train_id": "uuid-train",
+            "line_id": "uuid-line",
+            "direction": "INBOUND",
+            "status": "SCHEDULED",
+        },
+    }
+
+    registry = build_trip_registry(trip_stops, metadata)
+
+    assert set(registry) == {"uuid-trip"}
+    assert registry["uuid-trip"]["first_station_id"] == "first"
+    assert registry["uuid-trip"]["last_station_id"] == "last"
+    assert registry["uuid-trip"]["stop_count"] == 2
+    assert registry["uuid-trip"]["train_id"] == "uuid-train"
+    assert registry["uuid-trip"]["line_id"] == "uuid-line"
+    assert registry["uuid-trip"]["direction"] == "INBOUND"
 
 
 def test_direct_postgres_rehydrates_public_trip_registry():
