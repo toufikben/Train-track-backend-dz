@@ -14,11 +14,12 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
-from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse, HTMLResponse
 import asyncio
 import json
 import os
+import secrets
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, Field
@@ -113,6 +114,15 @@ class ReportIn(BaseModel):
     description: str | None = None
 
 
+def require_admin_key(x_admin_key: str | None = Header(default=None, alias="X-Admin-Key")) -> None:
+    """Require an explicitly configured operator key for every admin route."""
+    expected = (os.environ.get("ADMIN_API_KEY") or "").strip()
+    if not expected:
+        raise HTTPException(status_code=503, detail="admin_auth_not_configured")
+    if not x_admin_key or not secrets.compare_digest(x_admin_key, expected):
+        raise HTTPException(status_code=401, detail="admin_unauthorized")
+
+
 def _validate_db_uuid_fields(*fields: tuple[str, str | None]) -> None:
     """Reject non-UUID identifiers only when a UUID-backed DB adapter is active.
 
@@ -171,7 +181,7 @@ def version() -> dict[str, str]:
             "storage": "postgres-postgis" if getattr(store, "active", False) else "memory-mvp"}
 
 
-@app.get("/admin/health")
+@app.get("/admin/health", dependencies=[Depends(require_admin_key)])
 def admin_health() -> dict:
     """Data-health snapshot for operators (no secrets)."""
     if getattr(store, "evict_stale_db", None):
@@ -202,7 +212,7 @@ def _sqlproxy_live_probe() -> str:
         return f"ERROR: {exc}"
 
 
-@app.get("/admin/refresh-reference")
+@app.get("/admin/refresh-reference", dependencies=[Depends(require_admin_key)])
 def admin_refresh_reference() -> dict:
     """Reload stations + railway segments from Postgres into the live cache."""
     n_stations = 0
@@ -214,7 +224,7 @@ def admin_refresh_reference() -> dict:
     return {"stations": n_stations, "railway_segments": n_segments, "trip_stops": n_trips}
 
 
-@app.get("/admin/diag")
+@app.get("/admin/diag", dependencies=[Depends(require_admin_key)])
 def admin_diag() -> dict:
     """Boot diagnostics: env vars (keys only), psycopg status, store active."""
     import os
@@ -232,7 +242,7 @@ def admin_diag() -> dict:
     }
 
 
-@app.get("/admin/dashboard", response_class=HTMLResponse)
+@app.get("/admin/dashboard", response_class=HTMLResponse, dependencies=[Depends(require_admin_key)])
 def admin_dashboard() -> HTMLResponse:
     snap = health_snapshot(store)
     rows = "".join(
@@ -715,7 +725,7 @@ class TripStopsIn(BaseModel):
     station_ids: list[str] = Field(..., description="Ordered station ids along the trip")
 
 
-@app.post("/admin/trip-stops")
+@app.post("/admin/trip-stops", dependencies=[Depends(require_admin_key)])
 def set_trip_stops(body: TripStopsIn) -> dict[str, Any]:
     """Register ordered stops for a trip so Station Detection + ETA can run."""
     _validate_db_uuid_fields(
