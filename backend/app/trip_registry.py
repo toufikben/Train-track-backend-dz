@@ -49,7 +49,7 @@ def build_trip_registry(
         derived = {
             "train_id": trip_id,
             "line_id": _LINE_ID_MAP.get(raw_line, raw_line),
-            "direction": "OUTBOUND" if raw_line.startswith("aga-") else "RETURN",
+            "direction": "OUTBOUND" if raw_line.startswith("aga-") else "INBOUND",
             "scheduled_departure": None,
             "scheduled_arrival": None,
             "status": "SCHEDULED",
