@@ -1,0 +1,70 @@
+{
+  "dataset": "winrah_deferred_lines_reference",
+  "status": "PENDING_SERVICE_VALIDATION",
+  "not_live_tracking": true,
+  "not_production_seed": true,
+  "source_policy": "Route existence is sourced; station order, coordinates, timetable and train numbers require current operator validation before publication.",
+  "sources": [
+    {
+      "type": "official_operator_notice",
+      "publisher": "SNTF",
+      "url": "https://www.sntf.dz/index.php/communication/item/49-mise-en-service-du-troncon-tizi-ouzou-oued-aissi",
+      "supports": "Alger-Thénia-Tizi Ouzou-Oued Aïssi passenger relation",
+      "source_date": "2017-06-06"
+    },
+    {
+      "type": "geographic_reference",
+      "publisher": "OpenStreetMap Nominatim",
+      "url": "https://nominatim.openstreetmap.org/",
+      "supports": "Approximate public map anchor for Gare de Tizi Ouzou only",
+      "source_date": "2026-08-24"
+    }
+  ],
+  "lines": [
+    {
+      "android_id": "thenia_tizi",
+      "canonical_id": "line-suburb-thenia-tizi",
+      "name_ar": "خط الثنية - تيزي وزو - واد عيسي",
+      "name_fr": "Thénia - Tizi Ouzou - Oued Aïssi",
+      "status": "PENDING_SERVICE_VALIDATION",
+      "stations": [
+        {"local_id": "st_thn_t", "code": "THN", "name_ar": "الثنية", "sequence": 1, "requires_canonical_match": true},
+        {"local_id": "st_sms_t", "code": "SMS", "name_ar": "سي مصطفى", "sequence": 2, "requires_canonical_match": true},
+        {"local_id": "st_iss_t", "code": "ISS", "name_ar": "يسر", "sequence": 3, "requires_canonical_match": true},
+        {"local_id": "st_brm_t", "code": "BRM", "name_ar": "برج منايل", "sequence": 4, "requires_canonical_match": true},
+        {"local_id": "st_nac_t", "code": "NAC", "name_ar": "الناصرية", "sequence": 5, "requires_canonical_match": true},
+        {"local_id": "st_tdm_t", "code": "TDM", "name_ar": "تادمايت", "sequence": 6, "requires_canonical_match": true},
+        {"local_id": "st_dbk_t", "code": "DBK", "name_ar": "ذراع بن خدة", "sequence": 7, "requires_canonical_match": true},
+        {"local_id": "st_bkh_t", "code": "BKH", "name_ar": "بوخالفة", "sequence": 8, "requires_canonical_match": true},
+        {"local_id": "st_tzo_t", "code": "TZO", "name_ar": "تيزي وزو", "sequence": 9, "requires_canonical_match": true},
+        {"local_id": "st_oai_t", "code": "OAI", "name_ar": "وادي عيسي", "sequence": 10, "requires_canonical_match": true}
+      ],
+      "publication_requirements": [
+        "Confirm current station list and order with SNTF.",
+        "Resolve every local station to one canonical UUID; do not create duplicates.",
+        "Obtain current train numbers and timetable for both directions.",
+        "Load surveyed/verified railway segments, not straight-line display chords.",
+        "Run trips/stops/map API contract tests before enabling Android live matching."
+      ]
+    },
+    {
+      "android_id": "airport_algiers",
+      "canonical_id": "line-suburb-airport-algiers",
+      "name_ar": "خط مطار الجزائر هواري بومدين",
+      "name_fr": "Alger Houari Boumediene Airport rail link",
+      "status": "PENDING_SERVICE_VALIDATION",
+      "stations": [
+        {"local_id": "st_agh_ap", "code": "AGH", "name_ar": "آغا", "sequence": 1, "requires_canonical_match": true},
+        {"local_id": "st_hrh_ap", "code": "HRH", "name_ar": "الحراش", "sequence": 2, "requires_canonical_match": true},
+        {"local_id": "st_bbz_ap", "code": "BBZ", "name_ar": "باب الزوار", "sequence": 3, "requires_canonical_match": true},
+        {"local_id": "st_air_ap", "code": "AIR", "name_ar": "مطار هواري بومدين الدولي", "sequence": 4, "requires_canonical_match": true}
+      ],
+      "publication_requirements": [
+        "Confirm operator route and active service status.",
+        "Resolve canonical station UUIDs and current station geometry.",
+        "Obtain current train numbers and timetable.",
+        "Load verified railway segments and test ETA inputs before publishing live trains."
+      ]
+    }
+  ]
+}
