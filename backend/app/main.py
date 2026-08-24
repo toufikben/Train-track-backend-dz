@@ -22,7 +22,7 @@ import os
 import secrets
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
@@ -112,6 +112,19 @@ class ReportIn(BaseModel):
     station_id: str | None = None
     report_type: str = "OTHER"
     description: str | None = None
+
+    @field_validator("report_type")
+    @classmethod
+    def canonicalize_report_type(cls, value: str) -> str:
+        aliases = {"DELAY": "DELAYED", "CROWDING": "OTHER"}
+        canonical = aliases.get(value.strip().upper(), value.strip().upper())
+        allowed = {
+            "TRAIN_MOVING", "TRAIN_STOPPED", "ARRIVED_STATION",
+            "DEPARTED_STATION", "DELAYED", "PROBLEM", "OTHER",
+        }
+        if canonical not in allowed:
+            raise ValueError("unsupported_report_type")
+        return canonical
 
 
 def require_admin_key(x_admin_key: str | None = Header(default=None, alias="X-Admin-Key")) -> None:
@@ -780,7 +793,7 @@ def submit_report(body: ReportIn) -> dict[str, str]:
     _validate_db_uuid_fields(
         ("train_id", body.train_id), ("trip_id", body.trip_id), ("station_id", body.station_id)
     )
-    store.reports.append({
+    record = {
         "id": str(uuid4()),
         "train_id": body.train_id,
         "trip_id": body.trip_id,
@@ -788,9 +801,18 @@ def submit_report(body: ReportIn) -> dict[str, str]:
         "report_type": body.report_type,
         "description": body.description,
         "created_at": utcnow().isoformat(),
-    })
-    if getattr(store, "save_report", None):
-        store.save_report(store.reports[-1])
+    }
+    store.reports.append(record)
+    try:
+        persist = getattr(store, "save_report", None)
+        if persist is not None and persist(record) is False:
+            raise HTTPException(status_code=503, detail="report_persistence_failed")
+    except HTTPException:
+        store.reports.pop()
+        raise
+    except Exception:
+        store.reports.pop()
+        raise
     if getattr(store, "trim_windows", None):
         store.trim_windows()
     return {"status": "accepted"}

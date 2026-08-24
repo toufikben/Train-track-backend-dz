@@ -180,6 +180,49 @@ def test_active_store_denies_favorite_writes_by_default(monkeypatch) -> None:
     assert delete_response.json()["detail"] == "public_writes_disabled"
 
 
+def test_report_aliases_are_normalized_to_schema_values() -> None:
+    response = client.post(
+        "/reports",
+        json={"train_id": "legacy-train", "report_type": "DELAY", "description": "delay"},
+    )
+    assert response.status_code == 200, response.text
+    assert store.reports[-1]["report_type"] == "DELAYED"
+
+    crowding = client.post(
+        "/reports",
+        json={"train_id": "legacy-train", "report_type": "CROWDING", "description": "crowding"},
+    )
+    assert crowding.status_code == 200, crowding.text
+    assert store.reports[-1]["report_type"] == "OTHER"
+
+
+def test_report_rejects_unknown_type_before_mutation() -> None:
+    response = client.post(
+        "/reports",
+        json={"train_id": "legacy-train", "report_type": "NOT_A_REPORT"},
+    )
+    assert response.status_code == 422
+    assert store.reports == []
+
+
+def test_report_does_not_cache_when_persistence_returns_false(monkeypatch) -> None:
+    monkeypatch.setenv("WINRAH_PUBLIC_WRITES_ENABLED", "true")
+    monkeypatch.setattr(store, "active", True, raising=False)
+    monkeypatch.setattr(store, "save_report", lambda _record: False, raising=False)
+    response = client.post(
+        "/reports",
+        json={
+            "train_id": "22222222-2222-4222-8222-222222222222",
+            "trip_id": "11111111-1111-4111-8111-111111111111",
+            "station_id": "33333333-3333-4333-8333-333333333333",
+            "report_type": "DELAYED",
+        },
+    )
+    assert response.status_code == 503
+    assert response.json()["detail"] == "report_persistence_failed"
+    assert store.reports == []
+
+
 def test_db_mode_rejects_non_uuid_observation_ids(monkeypatch) -> None:
     monkeypatch.setenv("WINRAH_PUBLIC_WRITES_ENABLED", "true")
     monkeypatch.setattr(store, "active", True, raising=False)
