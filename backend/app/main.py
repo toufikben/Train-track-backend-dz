@@ -141,8 +141,11 @@ async def startup() -> None:
     elif getattr(store, "active", False):
         ns = store.load_railway_segments()
         print(f"Loaded {ns} railway segment polylines from PostGIS")
-        nt = store.load_trip_stops()
-        print(f"Loaded {nt} registered trips from Postgres")
+        n_trip_stop_rows = store.load_trip_stops()
+        print(
+            f"Loaded {n_trip_stop_rows} trip-stop rows for "
+            f"{len(store.trips)} registered trips from Postgres"
+        )
     else:
         print("No reference station file found — stations list empty")
 
