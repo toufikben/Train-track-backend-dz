@@ -199,10 +199,19 @@ def _sqlproxy_live_probe() -> str:
         import requests as _r
         url = _os.environ.get("SQLPROXY_URL") or ""
         key = _os.environ.get("SQLPROXY_KEY") or ""
-        if not url or not key:
+        proxy_secret = _os.environ.get("SQLPROXY_PROXY_SECRET") or ""
+        if not url or not key or not proxy_secret:
             return "missing_env"
-        resp = _r.post(url, headers={"Content-Type": "application/json", "X-Api-Key": key},
-                       json={"query": "SELECT 1 AS one"}, timeout=15)
+        resp = _r.post(
+            url,
+            headers={
+                "Content-Type": "application/json",
+                "X-Api-Key": key,
+                "X-Proxy-Secret": proxy_secret,
+            },
+            json={"query": "SELECT 1 AS one"},
+            timeout=15,
+        )
         try:
             body = resp.json()
         except Exception:
