@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 from datetime import datetime, timezone
 
 from .store import SessionRow, StationRow, TripStopRow, AggregateRow, utcnow
@@ -89,11 +90,19 @@ class PostgresStoreSqlproxy:
         self._active = False
         if (_SQLPROXY_URL and _SQLPROXY_KEY and _SQLPROXY_PROXY_SECRET
                 and _requests is not None):
-            try:
-                self._boot()
-            except Exception as exc:  # noqa: BLE001
-                print(f"postgres_store_sqlproxy: connection failed ({exc}); falling back to memory store")
-                self._active = False
+            attempts = max(int(os.environ.get("WINRAH_DB_BOOT_RETRIES", "3")), 1)
+            for attempt in range(1, attempts + 1):
+                try:
+                    self._boot()
+                    break
+                except Exception as exc:  # noqa: BLE001
+                    print(
+                        f"postgres_store_sqlproxy: boot failed ({attempt}/{attempts}) "
+                        f"{type(exc).__name__}"
+                    )
+                    self._active = False
+                    if attempt < attempts:
+                        time.sleep(min(2 ** (attempt - 1), 5))
 
     @property
     def active(self) -> bool:
@@ -415,10 +424,10 @@ class PostgresStoreSqlproxy:
                 line_id = _LINE_ID_MAP.get(raw_line, raw_line)
                 # Derive direction from the route prefix convention:
                 # "aga-<suburb>"    -> train departs AGA toward the suburb = OUTBOUND
-                # "<suburb>-aga"    -> train arrives at AGA from the suburb  = RETURN
+                # "<suburb>-aga" -> train arrives at AGA from the suburb  = INBOUND
                 # "aga-airport"     -> OUTBOUND (airport line from AGA)
                 # "<other>-aga"     -> RETURN (arrives at AGA)
-                direction = "OUTBOUND" if raw_line.startswith("aga-") else "RETURN"
+                direction = "OUTBOUND" if raw_line.startswith("aga-") else "INBOUND"
                 self.trips[trip_id] = {
                     "id": trip_id,
                     "train_id": trip_id,
@@ -467,14 +476,24 @@ class PostgresStoreSqlproxy:
     def save_trip_stops(self, trip_id: str, rows: list[TripStopRow]) -> None:
         if not self.active:
             return
-        _run_sql("DELETE FROM public.trip_stops WHERE trip_id = %s" % _esc(trip_id), timeout=15)
-        for r in rows:
+        if not rows:
             _run_sql(
-                "INSERT INTO public.trip_stops "
-                "(trip_id, station_id, sequence) VALUES (%s,%s,%s)" % (
-                    _esc(trip_id), _esc(r.station_id), r.sequence,
-                ),
-                timeout=10,
+                "DELETE FROM public.trip_stops WHERE trip_id = %s" % _esc(trip_id),
+                timeout=15,
+            )
+        else:
+            values = ", ".join(
+                "(%s, %s, %d)" % (_esc(trip_id), _esc(row.station_id), int(row.sequence))
+                for row in rows
+            )
+            # One statement keeps the delete and insert together on the proxy
+            # request and avoids N+1 network round trips.
+            _run_sql(
+                "WITH deleted AS ("
+                "DELETE FROM public.trip_stops WHERE trip_id = %s RETURNING id) "
+                "INSERT INTO public.trip_stops (trip_id, station_id, sequence) "
+                "VALUES %s" % (_esc(trip_id), values),
+                timeout=15,
             )
         with self._lock:
             self.trip_stops[trip_id] = list(rows)

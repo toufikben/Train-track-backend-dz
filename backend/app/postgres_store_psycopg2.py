@@ -8,7 +8,9 @@ Enabled when DATABASE_URL or SUPABASE_DB_URL is set.
 from __future__ import annotations
 import dataclasses
 import json
+import os
 import threading
+import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
@@ -48,12 +50,20 @@ class PostgresStorePsycopg2:
         self._pool = None
         conninfo = database_url()
         if conninfo and psycopg2 is not None:
-            try:
-                self._pool = psycopg2.pool.ThreadedConnectionPool(2, 10, conninfo)
-                self._boot()
-            except Exception as exc:  # noqa: BLE001
-                print(f"postgres_store_psycopg2: connection failed ({exc}); falling back to memory store")
-                self._pool = None
+            attempts = max(int(os.environ.get("WINRAH_DB_BOOT_RETRIES", "3")), 1)
+            for attempt in range(1, attempts + 1):
+                try:
+                    self._pool = psycopg2.pool.ThreadedConnectionPool(2, 10, conninfo)
+                    self._boot()
+                    break
+                except Exception as exc:  # noqa: BLE001
+                    print(
+                        f"postgres_store_psycopg2: boot failed ({attempt}/{attempts}) "
+                        f"{type(exc).__name__}"
+                    )
+                    self._pool = None
+                    if attempt < attempts:
+                        time.sleep(min(2 ** (attempt - 1), 5))
 
     @property
     def active(self) -> bool:
@@ -398,11 +408,13 @@ class PostgresStorePsycopg2:
         with self._conn() as conn:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM public.trip_stops WHERE trip_id = %s", (trip_id,))
-                for r in rows:
+                if rows:
+                    placeholders = ", ".join(["(%s, %s, %s)"] * len(rows))
+                    params = [value for row in rows for value in (trip_id, row.station_id, row.sequence)]
                     cur.execute(
-                        "INSERT INTO public.trip_stops "
-                        "(trip_id, station_id, sequence) VALUES (%s,%s,%s)",
-                        (trip_id, r.station_id, r.sequence),
+                        "INSERT INTO public.trip_stops (trip_id, station_id, sequence) VALUES "
+                        + placeholders,
+                        params,
                     )
 
     def save_report(self, report: dict) -> bool:

@@ -10,12 +10,13 @@ No fabricated live trains. Empty/null when no verified aggregate.
 from __future__ import annotations
 import sys
 from datetime import datetime, timezone
+import math
 from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, WebSocket, WebSocketDisconnect
-from fastapi.responses import StreamingResponse, HTMLResponse
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse, StreamingResponse, HTMLResponse
 import asyncio
 import json
 import os
@@ -31,7 +32,12 @@ if str(ROOT) not in sys.path:
 from app.store import store, SessionRow, TripStopRow, utcnow
 from app.pipeline import process_observation
 from app.realtime import hub
-from app.rate_limit import observation_limiter
+from app.rate_limit import RateLimiter, observation_limiter
+
+report_limiter = RateLimiter(max_events=10, window_seconds=60.0)
+session_limiter = RateLimiter(max_events=20, window_seconds=3600.0)
+write_limiter = RateLimiter(max_events=30, window_seconds=60.0)
+MAX_OBSERVATION_BATCH_ITEMS = 50
 from app.ttl import evict_stale, should_publish
 from app.admin_health import health_snapshot
 
@@ -86,16 +92,32 @@ app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 # ─── Schemas aligned with Android DTOs ───────────────────────────────────────
 
+MAX_CLIENT_CLOCK_SKEW_MS = 120_000
+
+
 class ObservationIn(BaseModel):
     session_id: str
     trip_id: str
     train_id: str
-    latitude: float
-    longitude: float
-    accuracy: float
-    speed: float = 0.0
-    heading: float = 0.0
-    timestamp: int  # epoch millis (GPS event time)
+    latitude: float = Field(..., ge=-90.0, le=90.0)
+    longitude: float = Field(..., ge=-180.0, le=180.0)
+    accuracy: float = Field(..., ge=0.0, le=5000.0)
+    speed: float = Field(0.0, ge=0.0, le=60.0)
+    heading: float = Field(0.0, ge=0.0, lt=360.0)
+    timestamp: int = Field(..., gt=0)  # epoch millis (GPS event time)
+
+    @field_validator("latitude", "longitude", "accuracy", "speed", "heading")
+    @classmethod
+    def reject_non_finite(cls, value: float) -> float:
+        if not math.isfinite(value):
+            raise ValueError("non-finite value rejected")
+        return value
+
+    @field_validator("timestamp")
+    @classmethod
+    def clamp_client_clock(cls, value: int) -> int:
+        now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+        return min(value, now_ms + MAX_CLIENT_CLOCK_SKEW_MS)
 
 
 class CreateMonitorSessionIn(BaseModel):
@@ -111,7 +133,7 @@ class ReportIn(BaseModel):
     trip_id: str | None = None
     station_id: str | None = None
     report_type: str = "OTHER"
-    description: str | None = None
+    description: str | None = Field(default=None, max_length=500)
 
     @field_validator("report_type")
     @classmethod
@@ -146,6 +168,27 @@ def require_public_writes_enabled() -> None:
         "WINRAH_PUBLIC_WRITES_ENABLED", "false"
     ).strip().lower() not in {"1", "true", "yes"}:
         raise HTTPException(status_code=503, detail="public_writes_disabled")
+
+
+def run_store_maintenance(store_obj: Any, limit: int = 500) -> int:
+    """Run the adapter-specific retention hook without assuming one name."""
+    trim_reports = getattr(store_obj, "trim_reports", None)
+    if callable(trim_reports):
+        return int(trim_reports(limit) or 0)
+    trim_windows = getattr(store_obj, "trim_windows", None)
+    if callable(trim_windows):
+        return int(trim_windows() or 0)
+    return 0
+
+
+def client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    return forwarded.split(",", 1)[0].strip() if forwarded else (request.client.host if request.client else "unknown")
+
+
+def enforce_rate_limit(request: Request, limiter: RateLimiter, scope: str) -> None:
+    if not limiter.allow(f"{client_ip(request)}|{scope}"):
+        raise HTTPException(status_code=429, detail="rate_limited")
 
 
 def _validate_db_uuid_fields(*fields: tuple[str, str | None]) -> None:
@@ -196,14 +239,26 @@ async def startup() -> None:
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok", "truth_model": "OBSERVED|ESTIMATED|UNKNOWN"}
+def health() -> JSONResponse:
+    storage_active = bool(getattr(store, "active", False))
+    payload = {
+        "status": "ok" if storage_active else "degraded",
+        "truth_model": "OBSERVED|ESTIMATED|UNKNOWN",
+        "storage": "postgres-postgis" if storage_active else "memory-fallback",
+        "counts": {
+            "stations": len(getattr(store, "stations", {}) or {}),
+            "trips": len(getattr(store, "trips", {}) or {}),
+        },
+    }
+    return JSONResponse(status_code=200 if storage_active else 503, content=payload)
 
 
 @app.get("/version")
 def version() -> dict[str, str]:
+    git_sha = (os.environ.get("RENDER_GIT_COMMIT") or os.environ.get("COMMIT_SHA") or "dev")[:12]
     return {"api": "0.10.0", "pipeline": "validate-aggregate-confidence-station-eta-wait",
-            "storage": "postgres-postgis" if getattr(store, "active", False) else "memory-mvp"}
+            "storage": "postgres-postgis" if getattr(store, "active", False) else "memory-mvp",
+            "git_sha": git_sha}
 
 
 @app.get("/admin/health", dependencies=[Depends(require_admin_key)])
@@ -597,7 +652,8 @@ def nearby_trains(
 # ─── Monitor sessions ────────────────────────────────────────────────────────
 
 @app.post("/monitor-sessions", dependencies=[Depends(require_public_writes_enabled)])
-def create_monitor_session(body: CreateMonitorSessionIn) -> dict[str, Any]:
+def create_monitor_session(request: Request, body: CreateMonitorSessionIn) -> dict[str, Any]:
+    enforce_rate_limit(request, session_limiter, f"session:{body.trip_id}:{body.train_id}")
     _validate_db_uuid_fields(("trip_id", body.trip_id), ("train_id", body.train_id))
     _validate_trip_train_reference(body.trip_id, body.train_id)
     sid = str(uuid4())
@@ -643,7 +699,8 @@ def create_monitor_session(body: CreateMonitorSessionIn) -> dict[str, Any]:
 
 
 @app.post("/monitor-sessions/{session_id}/end", dependencies=[Depends(require_public_writes_enabled)])
-def end_monitor_session(session_id: str) -> dict[str, Any]:
+def end_monitor_session(request: Request, session_id: str) -> dict[str, Any]:
+    enforce_rate_limit(request, session_limiter, f"session-end:{session_id}")
     row = store.sessions.get(session_id)
     if not row:
         raise HTTPException(404, "session_not_found")
@@ -696,7 +753,7 @@ def _validate_trip_train_reference(trip_id: str, train_id: str) -> None:
 
 
 @app.post("/observations", dependencies=[Depends(require_public_writes_enabled)])
-def post_observation(body: ObservationIn) -> dict[str, Any]:
+def post_observation(request: Request, body: ObservationIn) -> dict[str, Any]:
     _validate_db_uuid_fields(
         ("session_id", body.session_id), ("trip_id", body.trip_id), ("train_id", body.train_id)
     )
@@ -704,7 +761,7 @@ def post_observation(body: ObservationIn) -> dict[str, Any]:
     _assert_observation_binding(body)
     if getattr(store, "active", False) and body.session_id not in store.sessions:
         raise HTTPException(status_code=409, detail="session_not_found")
-    key = f"{body.session_id}:{body.train_id}"
+    key = f"{client_ip(request)}|{body.session_id}:{body.train_id}"
     if not observation_limiter.allow(key):
         raise HTTPException(429, "rate_limited")
     if body.session_id not in store.sessions:
@@ -748,8 +805,10 @@ def post_observation(body: ObservationIn) -> dict[str, Any]:
 
 
 @app.post("/observations/batch", dependencies=[Depends(require_public_writes_enabled)])
-def post_observation_batch(body: list[ObservationIn]) -> list[dict[str, Any]]:
-    return [post_observation(item) for item in body]
+def post_observation_batch(request: Request, body: list[ObservationIn]) -> list[dict[str, Any]]:
+    if len(body) > MAX_OBSERVATION_BATCH_ITEMS:
+        raise HTTPException(status_code=413, detail="observation_batch_too_large")
+    return [post_observation(request, item) for item in body]
 
 
 # ─── Admin helper: bind trip stops from reference stations ───────────────────
@@ -789,7 +848,8 @@ def set_trip_stops(body: TripStopsIn) -> dict[str, Any]:
 # ─── Reports (evidence only — never auto-fabricated) ─────────────────────────
 
 @app.post("/reports", dependencies=[Depends(require_public_writes_enabled)])
-def submit_report(body: ReportIn) -> dict[str, str]:
+def submit_report(request: Request, body: ReportIn) -> dict[str, str]:
+    enforce_rate_limit(request, report_limiter, f"report:{body.train_id}:{body.trip_id or ''}")
     _validate_db_uuid_fields(
         ("train_id", body.train_id), ("trip_id", body.trip_id), ("station_id", body.station_id)
     )
@@ -813,8 +873,7 @@ def submit_report(body: ReportIn) -> dict[str, str]:
     except Exception:
         store.reports.pop()
         raise
-    if getattr(store, "trim_windows", None):
-        store.trim_windows()
+    run_store_maintenance(store)
     return {"status": "accepted"}
 
 
@@ -965,12 +1024,14 @@ def get_favorites() -> list:
 
 
 @app.post("/favorites", dependencies=[Depends(require_public_writes_enabled)])
-def add_favorite(body: dict[str, Any]) -> dict[str, Any]:
+def add_favorite(request: Request, body: dict[str, Any]) -> dict[str, Any]:
+    enforce_rate_limit(request, write_limiter, "favorite-add")
     return body
 
 
 @app.delete("/favorites/{fav_id}", dependencies=[Depends(require_public_writes_enabled)])
-def delete_favorite(fav_id: str) -> dict[str, str]:
+def delete_favorite(request: Request, fav_id: str) -> dict[str, str]:
+    enforce_rate_limit(request, write_limiter, f"favorite-delete:{fav_id}")
     return {"status": "ok"}
 
 

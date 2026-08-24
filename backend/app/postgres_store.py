@@ -12,7 +12,9 @@ Reference stations and railway segments are loaded from Postgres at startup
 from __future__ import annotations
 import dataclasses
 import json
+import os
 import threading
+import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
@@ -67,15 +69,28 @@ class PostgresStore:
         self._pool: object | None = None
         self._conninfo = database_url()
         if self._conninfo and psycopg is not None:
-            try:
-                self._pool = ConnectionPool(
-                    self._conninfo, min_size=2, max_size=10, open=False
-                )
-                self._pool.open()
-                self._boot()
-            except Exception as exc:  # noqa: BLE001
-                print(f"postgres_store: connection failed ({exc}); falling back to memory store")
-                self._pool = None
+            attempts = max(int(os.environ.get("WINRAH_DB_BOOT_RETRIES", "3")), 1)
+            for attempt in range(1, attempts + 1):
+                try:
+                    self._pool = ConnectionPool(
+                        self._conninfo, min_size=2, max_size=10, open=False
+                    )
+                    self._pool.open()
+                    self._boot()
+                    break
+                except Exception as exc:  # noqa: BLE001
+                    print(
+                        f"postgres_store: boot failed ({attempt}/{attempts}) "
+                        f"{type(exc).__name__}"
+                    )
+                    if self._pool is not None:
+                        try:
+                            self._pool.close()
+                        except Exception:  # noqa: BLE001
+                            pass
+                    self._pool = None
+                    if attempt < attempts:
+                        time.sleep(min(2 ** (attempt - 1), 5))
 
     @property
     def active(self) -> bool:
@@ -443,11 +458,13 @@ class PostgresStore:
         with self._conn() as conn:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM public.trip_stops WHERE trip_id = %s", (trip_id,))
-                for r in rows:
+                if rows:
+                    placeholders = ", ".join(["(%s, %s, %s)"] * len(rows))
+                    params = [value for row in rows for value in (trip_id, row.station_id, row.sequence)]
                     cur.execute(
-                        "INSERT INTO public.trip_stops "
-                        "(trip_id, station_id, sequence) VALUES (%s,%s,%s)",
-                        (trip_id, r.station_id, r.sequence),
+                        "INSERT INTO public.trip_stops (trip_id, station_id, sequence) VALUES "
+                        + placeholders,
+                        params,
                     )
 
     def save_report(self, rec: dict) -> None:

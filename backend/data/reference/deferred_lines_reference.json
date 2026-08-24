@@ -3,20 +3,46 @@
   "status": "PENDING_SERVICE_VALIDATION",
   "not_live_tracking": true,
   "not_production_seed": true,
-  "source_policy": "Route existence is sourced; station order, coordinates, timetable and train numbers require current operator validation before publication.",
+  "source_policy": "Route existence is supported by the SNTF notice; station order and coordinates are provisional secondary references only. Current timetable, train numbers, canonical UUIDs and surveyed railway geometry require current operator validation before publication.",
   "sources": [
     {
       "type": "official_operator_notice",
       "publisher": "SNTF",
       "url": "https://www.sntf.dz/index.php/communication/item/49-mise-en-service-du-troncon-tizi-ouzou-oued-aissi",
-      "supports": "Alger-Thénia-Tizi Ouzou-Oued Aïssi passenger relation",
+      "supports": "Alger-Thénia-Tizi Ouzou-Oued Aïssi passenger relation since 2017-06-09",
       "source_date": "2017-06-06"
     },
     {
-      "type": "geographic_reference",
-      "publisher": "OpenStreetMap Nominatim",
-      "url": "https://nominatim.openstreetmap.org/",
-      "supports": "Approximate public map anchor for Gare de Tizi Ouzou only",
+      "type": "line_reference",
+      "publisher": "Wikipédia FR",
+      "url": "https://fr.wikipedia.org/wiki/Ligne_de_Th%C3%A9nia_%C3%A0_Oued_A%C3%AFssi",
+      "supports": "Provisional line/station reference and historical infrastructure context; not current operational timetable",
+      "source_date": "2026-08-24"
+    },
+    {
+      "type": "station_coordinate_reference",
+      "publisher": "Wikipédia FR",
+      "urls": [
+        "https://fr.wikipedia.org/wiki/Gare_de_Si_Mustapha",
+        "https://fr.wikipedia.org/wiki/Gare_d%27Isser",
+        "https://fr.wikipedia.org/wiki/Gare_de_Bordj_Mena%C3%AFel",
+        "https://fr.wikipedia.org/wiki/Gare_de_Naciria",
+        "https://fr.wikipedia.org/wiki/Gare_de_Tadma%C3%AFt",
+        "https://fr.wikipedia.org/wiki/Gare_de_Dra%C3%A2_Ben_Khedda",
+        "https://fr.wikipedia.org/wiki/Gare_de_Boukhalfa",
+        "https://fr.wikipedia.org/wiki/Gare_de_Tizi_Ouzou",
+        "https://fr.wikipedia.org/wiki/Gare_de_Kef_Na%C3%A2dja",
+        "https://fr.wikipedia.org/wiki/Gare_de_Oued_A%C3%AFssi_-_Universit%C3%A9",
+        "https://fr.wikipedia.org/wiki/Gare_de_Oued_A%C3%AFssi"
+      ],
+      "supports": "Provisional decimal coordinates and predecessor/successor station chain for local research; not production GIS geometry",
+      "source_date": "2026-08-24"
+    },
+    {
+      "type": "cross_check",
+      "publisher": "Wikidata",
+      "url": "https://www.wikidata.org/wiki/Q115596473",
+      "supports": "Independent coordinate cross-check for Oued Aïssi - Université",
       "source_date": "2026-08-24"
     }
   ],
@@ -24,20 +50,23 @@
     {
       "android_id": "thenia_tizi",
       "canonical_id": "line-suburb-thenia-tizi",
-      "name_ar": "خط الثنية - تيزي وزو - واد عيسي",
-      "name_fr": "Thénia - Tizi Ouzou - Oued Aïssi",
+      "name_ar": "خط الجزائر - الثنية - تيزي وزو - وادي عيسي",
+      "name_fr": "Alger - Thénia - Tizi Ouzou - Oued Aïssi",
       "status": "PENDING_SERVICE_VALIDATION",
+      "stations_documented": true,
       "stations": [
-        {"local_id": "st_thn_t", "code": "THN", "name_ar": "الثنية", "sequence": 1, "requires_canonical_match": true},
-        {"local_id": "st_sms_t", "code": "SMS", "name_ar": "سي مصطفى", "sequence": 2, "requires_canonical_match": true},
-        {"local_id": "st_iss_t", "code": "ISS", "name_ar": "يسر", "sequence": 3, "requires_canonical_match": true},
-        {"local_id": "st_brm_t", "code": "BRM", "name_ar": "برج منايل", "sequence": 4, "requires_canonical_match": true},
-        {"local_id": "st_nac_t", "code": "NAC", "name_ar": "الناصرية", "sequence": 5, "requires_canonical_match": true},
-        {"local_id": "st_tdm_t", "code": "TDM", "name_ar": "تادمايت", "sequence": 6, "requires_canonical_match": true},
-        {"local_id": "st_dbk_t", "code": "DBK", "name_ar": "ذراع بن خدة", "sequence": 7, "requires_canonical_match": true},
-        {"local_id": "st_bkh_t", "code": "BKH", "name_ar": "بوخالفة", "sequence": 8, "requires_canonical_match": true},
-        {"local_id": "st_tzo_t", "code": "TZO", "name_ar": "تيزي وزو", "sequence": 9, "requires_canonical_match": true},
-        {"local_id": "st_oai_t", "code": "OAI", "name_ar": "وادي عيسي", "sequence": 10, "requires_canonical_match": true}
+        {"local_id": "st_thn_t", "code": "THN", "name_ar": "الثنية", "name_fr": "Thénia", "sequence": 1, "requires_canonical_match": true, "note": "exists in production DB as terminal of line-suburb-thenia"},
+        {"local_id": "st_sms_t", "code": "SMS", "name_ar": "سي مصطفى", "name_fr": "Si Mustapha", "sequence": 2, "requires_canonical_match": true, "latitude": 36.722222, "longitude": 3.624444},
+        {"local_id": "st_iss_t", "code": "ISS", "name_ar": "يسر", "name_fr": "Isser", "sequence": 3, "requires_canonical_match": true, "latitude": 36.729722, "longitude": 3.665},
+        {"local_id": "st_brm_t", "code": "BRM", "name_ar": "برج منايل", "name_fr": "Bordj Menaïel", "sequence": 4, "requires_canonical_match": true, "latitude": 36.753611, "longitude": 3.719722},
+        {"local_id": "st_nac_t", "code": "NAC", "name_ar": "الناصرية", "name_fr": "Naciria", "sequence": 5, "requires_canonical_match": true, "latitude": 36.751389, "longitude": 3.826111},
+        {"local_id": "st_tdm_t", "code": "TDM", "name_ar": "تادمايت", "name_fr": "Tadmaït", "sequence": 6, "requires_canonical_match": true, "latitude": 36.742222, "longitude": 3.899722},
+        {"local_id": "st_dbk_t", "code": "DBK", "name_ar": "ذراع بن خدة", "name_fr": "Draâ Ben Khedda", "sequence": 7, "requires_canonical_match": true, "latitude": 36.741389, "longitude": 3.959722},
+        {"local_id": "st_bkh_t", "code": "BKH", "name_ar": "بوخالفة", "name_fr": "Boukhalfa", "sequence": 8, "requires_canonical_match": true, "latitude": 36.732778, "longitude": 4.017778},
+        {"local_id": "st_tzo_t", "code": "TZO", "name_ar": "تيزي وزو", "name_fr": "Tizi Ouzou", "sequence": 9, "requires_canonical_match": true, "latitude": 36.709722, "longitude": 4.034444, "altitude_m": 153},
+        {"local_id": "st_knd_t", "code": "KND", "name_ar": "كاف نعادجة", "name_fr": "Kef Naâdja", "sequence": 10, "requires_canonical_match": true, "latitude": 36.692778, "longitude": 4.045278, "note": "provisional multimodal reference; requires operator/canonical validation"},
+        {"local_id": "st_oau_t", "code": "OAU", "name_ar": "وادي عيسي الجامعة", "name_fr": "Oued Aïssi - Université", "sequence": 11, "requires_canonical_match": true, "latitude": 36.703611, "longitude": 4.105278, "wikidata": "Q115596473"},
+        {"local_id": "st_oai_t", "code": "OAI", "name_ar": "وادي عيسي", "name_fr": "Oued Aïssi", "sequence": 12, "requires_canonical_match": true, "latitude": 36.702591, "longitude": 4.14205, "note": "provisional terminus reference; requires operator/canonical validation"}
       ],
       "publication_requirements": [
         "Confirm current station list and order with SNTF.",
