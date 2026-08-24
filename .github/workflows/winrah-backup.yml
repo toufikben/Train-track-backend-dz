@@ -70,7 +70,7 @@ jobs:
           createdb -h restore-target -U postgres winrah_test
           # The PostGIS image already has the public schema. Exclude only
           # the dump's CREATE SCHEMA public entry; do not drop the target schema.
-          pg_restore --list "$DUMP_FILE" | grep -vE '^[0-9]+;[[:space:]]+SCHEMA[[:space:]]+-[[:space:]]+public([[:space:]]|$)' > restore.list
+          pg_restore --list "$DUMP_FILE" | grep -vE ';.*[[:space:]]SCHEMA[[:space:]]+-[[:space:]]+public([[:space:]]|$)' > restore.list
           pg_restore \
             -h restore-target \
             -U postgres \
