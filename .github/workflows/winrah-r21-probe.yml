@@ -9,7 +9,6 @@ permissions:
 jobs:
   sqlproxy-readonly-probe:
     runs-on: ubuntu-latest
-    container: curlimages/curl:8.10.1
     env:
       SQLPROXY_URL: https://wncxfbtjsmrvadgnmots.supabase.co/functions/v1/sql-proxy
       SQLPROXY_KEY: ${{ secrets.SQLPROXY_KEY }}
@@ -17,52 +16,52 @@ jobs:
 
     steps:
       - name: Preflight
-        shell: sh
+        shell: bash
         run: |
-          set -eu
-          [ -n "$SQLPROXY_KEY" ] || { echo "::error::secret SQLPROXY_KEY missing"; exit 1; }
-          [ -n "$PROXY_SECRET" ] || { echo "::error::secret PROXY_SECRET missing"; exit 1; }
+          set -euo pipefail
+          [[ -n "$SQLPROXY_KEY" ]] || { echo "::error::secret SQLPROXY_KEY missing"; exit 1; }
+          [[ -n "$PROXY_SECRET" ]] || { echo "::error::secret PROXY_SECRET missing"; exit 1; }
 
       - name: Probe SELECT count
-        shell: sh
+        shell: bash
         run: |
-          set -eu
+          set -euo pipefail
           set +x
-          curl --fail --silent --show-error --max-time 20 \
+          status=$(curl --silent --show-error --max-time 20 --output /tmp/probe-count.json --write-out '%{http_code}' \
             "$SQLPROXY_URL" \
-            -H "Content-Type: application/json" \
+            -H 'Content-Type: application/json' \
             -H "X-Api-Key: $SQLPROXY_KEY" \
             -H "X-Proxy-Secret: $PROXY_SECRET" \
-            --data '{"query":"SELECT count(*)::int AS stations FROM public.stations"}' \
-            > /tmp/probe-count.json
+            --data '{"query":"SELECT count(*)::int AS stations FROM public.stations"}')
+          [[ "$status" == "200" ]] || { echo "::error::SELECT probe HTTP status $status"; exit 1; }
           grep -Eq '"stations"[[:space:]]*:[[:space:]]*28' /tmp/probe-count.json \
-            || { echo "::error::SELECT count probe did not return stations=28"; exit 1; }
+            || { echo "::error::SELECT probe did not return stations=28"; exit 1; }
           echo "select_probe=success stations=28"
 
       - name: Probe CTE support
-        shell: sh
+        shell: bash
         run: |
-          set -eu
+          set -euo pipefail
           set +x
-          curl --fail --silent --show-error --max-time 20 \
+          status=$(curl --silent --show-error --max-time 20 --output /tmp/probe-cte.json --write-out '%{http_code}' \
             "$SQLPROXY_URL" \
-            -H "Content-Type: application/json" \
+            -H 'Content-Type: application/json' \
             -H "X-Api-Key: $SQLPROXY_KEY" \
             -H "X-Proxy-Secret: $PROXY_SECRET" \
-            --data '{"query":"WITH x AS (SELECT 42 AS v) SELECT v FROM x"}' \
-            > /tmp/probe-cte.json
+            --data '{"query":"WITH x AS (SELECT 42 AS v) SELECT v FROM x"}')
+          [[ "$status" == "200" ]] || { echo "::error::CTE probe HTTP status $status"; exit 1; }
           grep -Eq '"v"[[:space:]]*:[[:space:]]*42' /tmp/probe-cte.json \
             || { echo "::error::CTE probe did not return v=42"; exit 1; }
           echo "cte_probe=success v=42"
 
       - name: Sanitized summary
         if: always()
-        shell: sh
+        shell: bash
         run: |
           {
             echo "### SQL proxy read-only probe (sanitized)"
             echo '```'
-            if [ -f /tmp/probe-count.json ] && grep -Eq '"stations"[[:space:]]*:[[:space:]]*28' /tmp/probe-count.json; then echo "select_probe=success stations=28"; else echo "select_probe=not_verified"; fi
-            if [ -f /tmp/probe-cte.json ] && grep -Eq '"v"[[:space:]]*:[[:space:]]*42' /tmp/probe-cte.json; then echo "cte_probe=success v=42"; else echo "cte_probe=not_verified"; fi
+            if [[ -f /tmp/probe-count.json ]] && grep -Eq '"stations"[[:space:]]*:[[:space:]]*28' /tmp/probe-count.json; then echo "select_probe=success stations=28"; else echo "select_probe=not_verified"; fi
+            if [[ -f /tmp/probe-cte.json ]] && grep -Eq '"v"[[:space:]]*:[[:space:]]*42' /tmp/probe-cte.json; then echo "cte_probe=success v=42"; else echo "cte_probe=not_verified"; fi
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
