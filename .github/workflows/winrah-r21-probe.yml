@@ -22,6 +22,15 @@ jobs:
           [[ -n "$SQLPROXY_KEY" ]] || { echo "::error::secret SQLPROXY_KEY missing"; exit 1; }
           [[ -n "$PROXY_SECRET" ]] || { echo "::error::secret PROXY_SECRET missing"; exit 1; }
 
+      - name: Sanitized credential shape check
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "sqlproxy_key_length=${#SQLPROXY_KEY}"
+          if [[ "$SQLPROXY_KEY" == eyJ* ]]; then echo "sqlproxy_key_shape=jwt_like"; else echo "sqlproxy_key_shape=not_jwt_like"; fi
+          echo "proxy_secret_length=${#PROXY_SECRET}"
+          [[ ${#PROXY_SECRET} -ge 32 ]] || { echo "::error::PROXY_SECRET shorter than 32 characters"; exit 1; }
+
       - name: Probe SELECT count
         shell: bash
         run: |
