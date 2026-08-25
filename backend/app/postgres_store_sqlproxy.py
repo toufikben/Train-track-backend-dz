@@ -55,13 +55,18 @@ print(f"postgres_store_sqlproxy: requests={_VERSION} SQLPROXY_URL={'set' if _SQL
 
 def _run_sql(query: str, timeout: float = 15.0) -> list[dict]:
     """Execute one statement through the sql-proxy Edge Function."""
+    headers = {
+        "Content-Type": "application/json",
+        "X-Api-Key": _SQLPROXY_KEY,
+        "X-Proxy-Secret": _SQLPROXY_PROXY_SECRET,
+    }
+    # Supabase's hosted Edge Function JWT gate requires Authorization for legacy
+    # JWT keys. New sb_publishable_* keys are intentionally not sent as Bearer.
+    if _SQLPROXY_KEY.startswith("eyJ"):
+        headers["Authorization"] = f"Bearer {_SQLPROXY_KEY}"
     resp = _requests.post(
         _SQLPROXY_URL,
-        headers={
-            "Content-Type": "application/json",
-            "X-Api-Key": _SQLPROXY_KEY,
-            "X-Proxy-Secret": _SQLPROXY_PROXY_SECRET,
-        },
+        headers=headers,
         json={"query": query},
         timeout=timeout,
     )

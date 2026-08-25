@@ -36,11 +36,14 @@ jobs:
         run: |
           set -euo pipefail
           set +x
+          auth_args=()
+          if [[ "$SQLPROXY_KEY" == eyJ* ]]; then auth_args=(-H "Authorization: Bearer $SQLPROXY_KEY"); fi
           status=$(curl --silent --show-error --max-time 20 --output /tmp/probe-count.json --write-out '%{http_code}' \
             "$SQLPROXY_URL" \
             -H 'Content-Type: application/json' \
             -H "X-Api-Key: $SQLPROXY_KEY" \
             -H "X-Proxy-Secret: $PROXY_SECRET" \
+            "${auth_args[@]}" \
             --data '{"query":"SELECT count(*)::int AS stations FROM public.stations"}')
           [[ "$status" == "200" ]] || { echo "::error::SELECT probe HTTP status $status"; exit 1; }
           grep -Eq '"stations"[[:space:]]*:[[:space:]]*28' /tmp/probe-count.json \
@@ -52,11 +55,14 @@ jobs:
         run: |
           set -euo pipefail
           set +x
+          auth_args=()
+          if [[ "$SQLPROXY_KEY" == eyJ* ]]; then auth_args=(-H "Authorization: Bearer $SQLPROXY_KEY"); fi
           status=$(curl --silent --show-error --max-time 20 --output /tmp/probe-cte.json --write-out '%{http_code}' \
             "$SQLPROXY_URL" \
             -H 'Content-Type: application/json' \
             -H "X-Api-Key: $SQLPROXY_KEY" \
             -H "X-Proxy-Secret: $PROXY_SECRET" \
+            "${auth_args[@]}" \
             --data '{"query":"WITH x AS (SELECT 42 AS v) SELECT v FROM x"}')
           [[ "$status" == "200" ]] || { echo "::error::CTE probe HTTP status $status"; exit 1; }
           grep -Eq '"v"[[:space:]]*:[[:space:]]*42' /tmp/probe-cte.json \
