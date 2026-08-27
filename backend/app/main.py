@@ -128,7 +128,14 @@ class CreateMonitorSessionIn(BaseModel):
     app_version: str | None = None
 
 
+class ResumeMonitorSessionIn(BaseModel):
+    trip_id: str
+    train_id: str
+    anonymous_monitor_id: str | None = None
+
+
 class ReportIn(BaseModel):
+    session_id: str | None = None
     train_id: str
     trip_id: str | None = None
     station_id: str | None = None
@@ -698,6 +705,54 @@ def create_monitor_session(request: Request, body: CreateMonitorSessionIn) -> di
     }
 
 
+@app.post("/monitor-sessions/{session_id}/resume", dependencies=[Depends(require_public_writes_enabled)])
+def resume_monitor_session(
+    request: Request,
+    session_id: str,
+    body: ResumeMonitorSessionIn,
+) -> dict[str, Any]:
+    """Validate a locally persisted session before background observations resume."""
+    enforce_rate_limit(request, session_limiter, f"session-resume:{session_id}")
+    _validate_db_uuid_fields(
+        ("session_id", session_id),
+        ("trip_id", body.trip_id),
+        ("train_id", body.train_id),
+    )
+    row = store.sessions.get(session_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="session_not_found")
+    if row.status == "ENDED" or row.ended_at is not None:
+        raise HTTPException(status_code=409, detail="session_ended")
+    if row.trip_id != body.trip_id or row.train_id != body.train_id:
+        raise HTTPException(status_code=409, detail="session_binding_mismatch")
+    if row.anonymous_monitor_id is not None and row.anonymous_monitor_id != body.anonymous_monitor_id:
+        raise HTTPException(status_code=409, detail="session_monitor_mismatch")
+
+    if row.status == "STARTING":
+        row.status = "ACTIVE"
+    if getattr(store, "upsert_session", None):
+        store.upsert_session(
+            row.id,
+            row.trip_id,
+            row.train_id,
+            row.status,
+            row.started_at,
+            row.anonymous_monitor_id,
+            row.ended_at,
+            row.last_observation_at,
+        )
+    return {
+        "id": row.id,
+        "trip_id": row.trip_id,
+        "train_id": row.train_id,
+        "anonymous_monitor_id": row.anonymous_monitor_id,
+        "status": row.status,
+        "started_at": row.started_at.isoformat(),
+        "ended_at": row.ended_at.isoformat() if row.ended_at else None,
+        "last_observation_at": row.last_observation_at.isoformat() if row.last_observation_at else None,
+    }
+
+
 @app.post("/monitor-sessions/{session_id}/end", dependencies=[Depends(require_public_writes_enabled)])
 def end_monitor_session(request: Request, session_id: str) -> dict[str, Any]:
     enforce_rate_limit(request, session_limiter, f"session-end:{session_id}")
@@ -846,6 +901,17 @@ def set_trip_stops(body: TripStopsIn) -> dict[str, Any]:
 
 
 # ─── Reports (evidence only — never auto-fabricated) ─────────────────────────
+def _validate_report_session(body: ReportIn) -> None:
+    """When supplied, bind a report to an existing non-ended monitor session."""
+    if body.session_id is None:
+        return
+    _validate_db_uuid_fields(("session_id", body.session_id))
+    session = store.sessions.get(body.session_id)
+    if session is None:
+        raise HTTPException(status_code=409, detail="session_not_found")
+    if session.status == "ENDED" or session.train_id != body.train_id or session.trip_id != body.trip_id:
+        raise HTTPException(status_code=409, detail="session_binding_mismatch")
+
 
 @app.post("/reports", dependencies=[Depends(require_public_writes_enabled)])
 def submit_report(request: Request, body: ReportIn) -> dict[str, str]:
@@ -853,8 +919,10 @@ def submit_report(request: Request, body: ReportIn) -> dict[str, str]:
     _validate_db_uuid_fields(
         ("train_id", body.train_id), ("trip_id", body.trip_id), ("station_id", body.station_id)
     )
+    _validate_report_session(body)
     record = {
         "id": str(uuid4()),
+        "session_id": body.session_id,
         "train_id": body.train_id,
         "trip_id": body.trip_id,
         "station_id": body.station_id,
@@ -875,6 +943,12 @@ def submit_report(request: Request, body: ReportIn) -> dict[str, str]:
         raise
     run_store_maintenance(store)
     return {"status": "accepted"}
+
+
+@app.get("/reports/session/{session_id}")
+def reports_for_session(session_id: str) -> list[dict[str, Any]]:
+    _validate_db_uuid_fields(("session_id", session_id))
+    return [r for r in store.reports if r.get("session_id") == session_id]
 
 
 @app.get("/reports/train/{train_id}")

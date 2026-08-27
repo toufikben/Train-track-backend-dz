@@ -505,9 +505,9 @@ class PostgresStoreSqlproxy:
         try:
             _run_sql(
                 "INSERT INTO public.community_reports "
-                "(id, train_id, trip_id, station_id, report_type, description, created_at) "
-                "VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING" % (
-                    _q(report.get("id")), _q(report.get("train_id")),
+                "(id, session_id, train_id, trip_id, station_id, report_type, description, created_at) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING" % (
+                    _q(report.get("id")), _q(report.get("session_id")), _q(report.get("train_id")),
                     _q(report.get("trip_id")), _q(report.get("station_id")),
                     _q(report.get("report_type")), _q(report.get("description")),
                     _q(report.get("created_at")),

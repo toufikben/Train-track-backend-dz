@@ -475,10 +475,10 @@ class PostgresStore:
             with conn.cursor() as cur:
                 cur.execute(
                     "INSERT INTO public.community_reports "
-                    "(id, train_id, trip_id, station_id, report_type, description, created_at) "
-                    "VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING",
-                    (rec.get("id"), rec.get("train_id"), rec.get("trip_id"),
-                     rec.get("station_id"), rec.get("report_type"),
+                    "(id, session_id, train_id, trip_id, station_id, report_type, description, created_at) "
+                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING",
+                    (rec.get("id"), rec.get("session_id"), rec.get("train_id"),
+                     rec.get("trip_id"), rec.get("station_id"), rec.get("report_type"),
                      rec.get("description"), rec.get("created_at")),
                 )
 

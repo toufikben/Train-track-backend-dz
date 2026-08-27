@@ -178,6 +178,7 @@ CREATE TABLE station_events (
 
 CREATE TABLE community_reports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id UUID REFERENCES monitor_sessions(id) ON DELETE SET NULL,
     train_id UUID REFERENCES trains(id),
     trip_id UUID REFERENCES trips(id),
     station_id UUID REFERENCES stations(id),
@@ -243,3 +244,4 @@ CREATE INDEX idx_gps_observations_trip ON gps_observations(trip_id);
 CREATE INDEX idx_aggregated_train_positions_location ON aggregated_train_positions USING GIST (location);
 CREATE INDEX idx_aggregated_train_positions_trip ON aggregated_train_positions(trip_id);
 CREATE INDEX idx_community_reports_train ON community_reports(train_id);
+CREATE INDEX idx_community_reports_session ON community_reports(session_id);

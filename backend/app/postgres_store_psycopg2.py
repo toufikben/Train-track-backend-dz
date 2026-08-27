@@ -426,10 +426,10 @@ class PostgresStorePsycopg2:
                 try:
                     cur.execute(
                         "INSERT INTO public.community_reports "
-                        "(id, train_id, trip_id, station_id, report_type, description, created_at) "
-                        "VALUES (%s,%s,%s,%s,%s,%s,%s) "
+                        "(id, session_id, train_id, trip_id, station_id, report_type, description, created_at) "
+                        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s) "
                         "ON CONFLICT (id) DO NOTHING",
-                        (report.get("id"), report.get("train_id"),
+                        (report.get("id"), report.get("session_id"), report.get("train_id"),
                          report.get("trip_id"), report.get("station_id"),
                          report.get("report_type"), report.get("description"),
                          report.get("created_at")),

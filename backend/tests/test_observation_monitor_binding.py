@@ -232,3 +232,136 @@ def test_db_mode_rejects_non_uuid_observation_ids(monkeypatch) -> None:
     )
     assert response.status_code == 422
     assert response.json()["detail"] == "invalid_session_id_uuid"
+
+
+def test_report_with_matching_session_is_accepted_and_stored() -> None:
+    session_id = _create_session()
+    response = client.post(
+        "/reports",
+        json={
+            "session_id": session_id,
+            "trip_id": "binding-trip-a",
+            "train_id": "binding-train-a",
+            "report_type": "DELAYED",
+            "description": "delay observed during active broadcast",
+        },
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == "accepted"
+    assert store.reports[-1]["session_id"] == session_id
+
+
+def test_report_rejects_session_binding_mismatch() -> None:
+    session_id = _create_session()
+    response = client.post(
+        "/reports",
+        json={
+            "session_id": session_id,
+            "trip_id": "different-trip",
+            "train_id": "binding-train-a",
+            "report_type": "OTHER",
+        },
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"] == "session_binding_mismatch"
+    assert store.reports == []
+
+
+def test_report_rejects_unknown_or_ended_session() -> None:
+    unknown_response = client.post(
+        "/reports",
+        json={
+            "session_id": "33333333-3333-4333-8333-333333333333",
+            "trip_id": "binding-trip-a",
+            "train_id": "binding-train-a",
+            "report_type": "OTHER",
+        },
+    )
+    assert unknown_response.status_code == 409
+    assert unknown_response.json()["detail"] == "session_not_found"
+
+    session_id = _create_session()
+    end_response = client.post(f"/monitor-sessions/{session_id}/end")
+    assert end_response.status_code == 200
+    ended_response = client.post(
+        "/reports",
+        json={
+            "session_id": session_id,
+            "trip_id": "binding-trip-a",
+            "train_id": "binding-train-a",
+            "report_type": "OTHER",
+        },
+    )
+    assert ended_response.status_code == 409
+    assert ended_response.json()["detail"] == "session_binding_mismatch"
+    assert store.reports == []
+
+
+def test_legacy_report_without_session_remains_supported() -> None:
+    response = client.post(
+        "/reports",
+        json={
+            "trip_id": "binding-trip-a",
+            "train_id": "binding-train-a",
+            "report_type": "OTHER",
+        },
+    )
+    assert response.status_code == 200, response.text
+    assert store.reports[-1]["session_id"] is None
+
+
+def test_resume_matching_session_returns_active_binding() -> None:
+    session_id = _create_session("resume-trip-a", "resume-train-a")
+    response = client.post(
+        f"/monitor-sessions/{session_id}/resume",
+        json={
+            "trip_id": "resume-trip-a",
+            "train_id": "resume-train-a",
+            "anonymous_monitor_id": "binding-test-monitor",
+        },
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["id"] == session_id
+    assert response.json()["status"] == "ACTIVE"
+
+
+def test_resume_rejects_ended_session() -> None:
+    session_id = _create_session("resume-trip-ended", "resume-train-ended")
+    end_response = client.post(f"/monitor-sessions/{session_id}/end")
+    assert end_response.status_code == 200, end_response.text
+
+    response = client.post(
+        f"/monitor-sessions/{session_id}/resume",
+        json={
+            "trip_id": "resume-trip-ended",
+            "train_id": "resume-train-ended",
+            "anonymous_monitor_id": "binding-test-monitor",
+        },
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"] == "session_ended"
+
+
+def test_resume_rejects_mismatched_binding_and_monitor() -> None:
+    session_id = _create_session("resume-trip-bound", "resume-train-bound")
+    bad_binding = client.post(
+        f"/monitor-sessions/{session_id}/resume",
+        json={
+            "trip_id": "wrong-trip",
+            "train_id": "resume-train-bound",
+            "anonymous_monitor_id": "binding-test-monitor",
+        },
+    )
+    assert bad_binding.status_code == 409
+    assert bad_binding.json()["detail"] == "session_binding_mismatch"
+
+    bad_monitor = client.post(
+        f"/monitor-sessions/{session_id}/resume",
+        json={
+            "trip_id": "resume-trip-bound",
+            "train_id": "resume-train-bound",
+            "anonymous_monitor_id": "different-monitor",
+        },
+    )
+    assert bad_monitor.status_code == 409
+    assert bad_monitor.json()["detail"] == "session_monitor_mismatch"
