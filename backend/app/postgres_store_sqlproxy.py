@@ -178,7 +178,7 @@ class PostgresStoreSqlproxy:
             return
         rows = _run_sql(
             "SELECT id, trip_id, train_id, anonymous_monitor_id, status, "
-            "started_at, last_observation_at, ended_at FROM public.monitor_sessions"
+            "started_at, last_observation_at, ended_at, line_id, direction FROM public.monitor_sessions"
         )
         with self._lock:
             for r in rows:
@@ -187,6 +187,7 @@ class PostgresStoreSqlproxy:
                     anonymous_monitor_id=r["anonymous_monitor_id"],
                     status=str(r["status"]), started_at=r["started_at"],
                     ended_at=r["ended_at"], last_observation_at=r["last_observation_at"],
+                    line_id=r.get("line_id"), direction=r.get("direction"),
                 )
         aggregate_rows = _run_sql(
             "SELECT trip_id, train_id, ST_Y(location) AS latitude, ST_X(location) AS longitude, "
@@ -247,20 +248,22 @@ class PostgresStoreSqlproxy:
                        status: str, started_at: datetime,
                        anonymous_monitor_id: str | None = None,
                        ended_at: datetime | None = None,
-                       last_observation_at: datetime | None = None) -> None:
+                       last_observation_at: datetime | None = None,
+                       line_id: str | None = None,
+                       direction: str | None = None) -> None:
         if not self.active:
             return
         _run_sql(
             "INSERT INTO public.monitor_sessions "
             "(id, trip_id, train_id, anonymous_monitor_id, status, started_at, "
-            "last_observation_at, ended_at) "
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s) "
+            "last_observation_at, ended_at, line_id, direction) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
             "ON CONFLICT (id) DO UPDATE SET "
             "status=EXCLUDED.status, last_observation_at=EXCLUDED.last_observation_at, "
             "ended_at=EXCLUDED.ended_at" % (
                 _esc(session_id), _esc(trip_id), _esc(train_id),
                 _q(anonymous_monitor_id), _esc(status), _qt(started_at),
-                _qt(last_observation_at), _qt(ended_at),
+                _qt(last_observation_at), _qt(ended_at), _q(line_id), _q(direction),
             ),
             timeout=10,
         )
@@ -270,6 +273,7 @@ class PostgresStoreSqlproxy:
                 anonymous_monitor_id=anonymous_monitor_id, status=status,
                 started_at=started_at, ended_at=ended_at,
                 last_observation_at=last_observation_at,
+                line_id=line_id, direction=direction,
             )
 
     def insert_observation(self, row: object) -> None:
@@ -280,12 +284,13 @@ class PostgresStoreSqlproxy:
                 self.observations = self.observations[-(self._obs_limit // 2):]
         _run_sql(
             "INSERT INTO public.gps_observations "
-            "(id, session_id, trip_id, train_id, location, accuracy_meters, "
+            "(id, session_id, trip_id, train_id, line_id, direction, location, accuracy_meters, "
             "speed_mps, heading_deg, observed_at, is_valid, rejection_reason, "
             "validation_score) "
-            "VALUES (%s,%s,%s,%s,ST_SetSRID(ST_MakePoint(%s,%s),4326),%s,%s,%s,%s,%s,%s,%s) "
+            "VALUES (%s,%s,%s,%s,%s,%s,ST_SetSRID(ST_MakePoint(%s,%s),4326),%s,%s,%s,%s,%s,%s,%s) "
             "ON CONFLICT (id) DO NOTHING" % (
                 _esc(row.id), _esc(row.session_id), _esc(row.trip_id), _esc(row.train_id),
+                _q(getattr(row, "line_id", None)), _q(getattr(row, "direction", None)),
                 row.longitude, row.latitude, _q(row.accuracy),
                 _q(row.speed), _q(row.heading), _qt(row.observed_at),
                 "true" if row.accepted else "false",
@@ -510,9 +515,9 @@ class PostgresStoreSqlproxy:
         try:
             _run_sql(
                 "INSERT INTO public.community_reports "
-                "(id, train_id, trip_id, station_id, report_type, description, created_at) "
-                "VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING" % (
-                    _q(report.get("id")), _q(report.get("train_id")),
+                "(id, session_id, train_id, trip_id, station_id, report_type, description, created_at) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING" % (
+                    _q(report.get("id")), _q(report.get("session_id")), _q(report.get("train_id")),
                     _q(report.get("trip_id")), _q(report.get("station_id")),
                     _q(report.get("report_type")), _q(report.get("description")),
                     _q(report.get("created_at")),

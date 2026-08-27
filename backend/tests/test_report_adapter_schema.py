@@ -15,12 +15,13 @@ REPORT = {
     "station_id": "station-id",
     "report_type": "DELAYED",
     "description": "observed delay",
+    "session_id": "session-id",
     "created_at": datetime.now(timezone.utc).isoformat(),
 }
 
 
 CANONICAL_COLUMNS = (
-    "(id, train_id, trip_id, station_id, report_type, description, created_at)"
+    "(id, session_id, train_id, trip_id, station_id, report_type, description, created_at)"
 )
 LEGACY_COLUMNS = (
     "report_id",
@@ -29,7 +30,6 @@ LEGACY_COLUMNS = (
     "reported_at",
     "event_kind",
     "description_ar",
-    "session_id",
 )
 
 
@@ -81,7 +81,7 @@ def test_psycopg3_save_report_uses_canonical_columns():
     query, params = connection.cursor_instance.calls[0]
     assert_canonical_query(query)
     assert params == tuple(REPORT[key] for key in (
-        "id", "train_id", "trip_id", "station_id", "report_type", "description", "created_at"
+        "id", "session_id", "train_id", "trip_id", "station_id", "report_type", "description", "created_at"
     ))
 
 
@@ -96,7 +96,7 @@ def test_psycopg2_save_report_uses_canonical_columns():
     query, params = connection.cursor_instance.calls[0]
     assert_canonical_query(query)
     assert params == tuple(REPORT[key] for key in (
-        "id", "train_id", "trip_id", "station_id", "report_type", "description", "created_at"
+        "id", "session_id", "train_id", "trip_id", "station_id", "report_type", "description", "created_at"
     ))
 
 
