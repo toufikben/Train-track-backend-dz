@@ -29,8 +29,9 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.store import store, SessionRow, TripStopRow, utcnow
+from app.store import store, SessionRow, ObservationRow, TripStopRow, utcnow
 from app.pipeline import process_observation
+from engines.route_match import min_distance_to_segments_m
 from app.realtime import hub
 from app.rate_limit import RateLimiter, observation_limiter
 
@@ -97,8 +98,10 @@ MAX_CLIENT_CLOCK_SKEW_MS = 120_000
 
 class ObservationIn(BaseModel):
     session_id: str
-    trip_id: str
-    train_id: str
+    line_id: str | None = None
+    direction: str | None = None
+    trip_id: str | None = None
+    train_id: str | None = None
     latitude: float = Field(..., ge=-90.0, le=90.0)
     longitude: float = Field(..., ge=-180.0, le=180.0)
     accuracy: float = Field(..., ge=0.0, le=5000.0)
@@ -121,16 +124,20 @@ class ObservationIn(BaseModel):
 
 
 class CreateMonitorSessionIn(BaseModel):
-    trip_id: str
-    train_id: str
+    line_id: str | None = None
+    direction: str | None = None
+    trip_id: str | None = None
+    train_id: str | None = None
     anonymous_monitor_id: str | None = None
     device_info: str | None = None
     app_version: str | None = None
 
 
 class ResumeMonitorSessionIn(BaseModel):
-    trip_id: str
-    train_id: str
+    line_id: str | None = None
+    direction: str | None = None
+    trip_id: str | None = None
+    train_id: str | None = None
     anonymous_monitor_id: str | None = None
 
 
@@ -660,7 +667,11 @@ def nearby_trains(
 
 @app.post("/monitor-sessions", dependencies=[Depends(require_public_writes_enabled)])
 def create_monitor_session(request: Request, body: CreateMonitorSessionIn) -> dict[str, Any]:
-    enforce_rate_limit(request, session_limiter, f"session:{body.trip_id}:{body.train_id}")
+    if body.trip_id is None and (not body.line_id or not body.direction):
+        raise HTTPException(status_code=422, detail="line_direction_required_for_public_session")
+    if (body.trip_id is None) != (body.train_id is None):
+        raise HTTPException(status_code=422, detail="trip_train_must_be_both_set_or_null")
+    enforce_rate_limit(request, session_limiter, f"session:{body.line_id or body.trip_id}:{body.direction or body.train_id}")
     _validate_db_uuid_fields(("trip_id", body.trip_id), ("train_id", body.train_id))
     _validate_trip_train_reference(body.trip_id, body.train_id)
     sid = str(uuid4())
@@ -671,19 +682,22 @@ def create_monitor_session(request: Request, body: CreateMonitorSessionIn) -> di
         anonymous_monitor_id=body.anonymous_monitor_id,
         status="STARTING",
         started_at=utcnow(),
+        line_id=body.line_id,
+        direction=body.direction,
     )
     # Persist first. A failed DB write must not leave a phantom cache row.
     try:
         if getattr(store, "upsert_session", None):
             store.upsert_session(sid, row.trip_id, row.train_id, row.status,
-                                 row.started_at, row.anonymous_monitor_id)
+                                 row.started_at, row.anonymous_monitor_id,
+                                 line_id=row.line_id, direction=row.direction)
     except Exception as exc:  # noqa: BLE001
         print(f"monitor session persistence failed: {type(exc).__name__}")
         raise HTTPException(status_code=503, detail="storage_unavailable") from None
     store.sessions[sid] = row
     # MemoryStore-only shell behavior is retained for local development. A
     # DB-backed adapter must never invent a trip absent from canonical tables.
-    if not getattr(store, "active", False) and body.trip_id not in store.trips:
+    if body.trip_id is not None and not getattr(store, "active", False) and body.trip_id not in store.trips:
         store.trips[body.trip_id] = {
             "id": body.trip_id,
             "train_id": body.train_id,
@@ -695,6 +709,8 @@ def create_monitor_session(request: Request, body: CreateMonitorSessionIn) -> di
         }
     return {
         "id": row.id,
+        "line_id": row.line_id,
+        "direction": row.direction,
         "trip_id": row.trip_id,
         "train_id": row.train_id,
         "anonymous_monitor_id": row.anonymous_monitor_id,
@@ -723,6 +739,10 @@ def resume_monitor_session(
         raise HTTPException(status_code=404, detail="session_not_found")
     if row.status == "ENDED" or row.ended_at is not None:
         raise HTTPException(status_code=409, detail="session_ended")
+    if row.line_id is not None and row.line_id != body.line_id:
+        raise HTTPException(status_code=409, detail="session_line_mismatch")
+    if row.direction is not None and row.direction != body.direction:
+        raise HTTPException(status_code=409, detail="session_direction_mismatch")
     if row.trip_id != body.trip_id or row.train_id != body.train_id:
         raise HTTPException(status_code=409, detail="session_binding_mismatch")
     if row.anonymous_monitor_id is not None and row.anonymous_monitor_id != body.anonymous_monitor_id:
@@ -740,9 +760,13 @@ def resume_monitor_session(
             row.anonymous_monitor_id,
             row.ended_at,
             row.last_observation_at,
+            row.line_id,
+            row.direction,
         )
     return {
         "id": row.id,
+        "line_id": row.line_id,
+        "direction": row.direction,
         "trip_id": row.trip_id,
         "train_id": row.train_id,
         "anonymous_monitor_id": row.anonymous_monitor_id,
@@ -767,6 +791,8 @@ def end_monitor_session(request: Request, session_id: str) -> dict[str, Any]:
                              row.last_observation_at)
     return {
         "id": row.id,
+        "line_id": row.line_id,
+        "direction": row.direction,
         "trip_id": row.trip_id,
         "train_id": row.train_id,
         "anonymous_monitor_id": row.anonymous_monitor_id,
@@ -788,12 +814,20 @@ def _assert_observation_binding(body: ObservationIn) -> None:
     session = store.sessions.get(body.session_id)
     if session is None:
         return
-    if session.trip_id != body.trip_id or session.train_id != body.train_id:
+    if body.trip_id is not None and session.trip_id != body.trip_id:
         raise HTTPException(status_code=409, detail="session_binding_mismatch")
+    if body.train_id is not None and session.train_id != body.train_id:
+        raise HTTPException(status_code=409, detail="session_binding_mismatch")
+    if body.line_id is not None and session.line_id is not None and session.line_id != body.line_id:
+        raise HTTPException(status_code=409, detail="session_line_mismatch")
+    if body.direction is not None and session.direction is not None and session.direction != body.direction:
+        raise HTTPException(status_code=409, detail="session_direction_mismatch")
 
 
-def _validate_trip_train_reference(trip_id: str, train_id: str) -> None:
+def _validate_trip_train_reference(trip_id: str | None, train_id: str | None) -> None:
     """Validate DB-backed references before creating any session cache entry."""
+    if trip_id is None or train_id is None:
+        return
     checker = getattr(store, "check_trip_train_reference", None)
     if not getattr(store, "active", False) or checker is None:
         return
@@ -830,6 +864,37 @@ def post_observation(request: Request, body: ObservationIn) -> dict[str, Any]:
             status="ACTIVE",
             started_at=utcnow(),
         )
+    if body.trip_id is None and body.train_id is None:
+        observed_at = datetime.fromtimestamp(body.timestamp / 1000.0, tz=timezone.utc)
+        rail_distance = min_distance_to_segments_m(body.latitude, body.longitude, store.railway_segments)
+        accepted = rail_distance is not None and rail_distance <= 400.0
+        generic_row = ObservationRow(
+            id=str(uuid4()),
+            session_id=body.session_id,
+            trip_id=None,
+            train_id=None,
+            latitude=body.latitude,
+            longitude=body.longitude,
+            accuracy=body.accuracy,
+            speed=body.speed,
+            heading=body.heading if body.heading else None,
+            observed_at=observed_at,
+            accepted=accepted,
+            rejection_reason=None if accepted else "outside_railway_corridor",
+            validation_score=1.0 if accepted else 0.0,
+            line_id=body.line_id,
+            direction=body.direction,
+        )
+        store.observations.append(generic_row)
+        if getattr(store, "insert_observation", None):
+            store.insert_observation(generic_row)
+        return {
+            "accepted": accepted,
+            "observation_id": generic_row.id,
+            "scope": "PUBLIC_CORRIDOR",
+            "railway_distance_m": rail_distance,
+            "rejection_reason": generic_row.rejection_reason,
+        }
     result = process_observation(
         store,
         observation_id=str(uuid4()),

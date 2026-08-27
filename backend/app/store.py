@@ -16,21 +16,23 @@ def utcnow() -> datetime:
 @dataclass
 class SessionRow:
     id: str
-    trip_id: str
-    train_id: str
+    trip_id: str | None
+    train_id: str | None
     anonymous_monitor_id: str | None
     status: str
     started_at: datetime
     ended_at: datetime | None = None
     last_observation_at: datetime | None = None
+    line_id: str | None = None
+    direction: str | None = None
 
 
 @dataclass
 class ObservationRow:
     id: str
     session_id: str
-    trip_id: str
-    train_id: str
+    trip_id: str | None
+    train_id: str | None
     latitude: float
     longitude: float
     accuracy: float
@@ -40,6 +42,8 @@ class ObservationRow:
     accepted: bool
     rejection_reason: str | None
     validation_score: float
+    line_id: str | None = None
+    direction: str | None = None
 
 
 @dataclass

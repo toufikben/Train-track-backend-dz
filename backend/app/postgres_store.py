@@ -188,15 +188,17 @@ class PostgresStore:
             with conn.cursor() as cur:
                 cur.execute(
                     "SELECT id, trip_id, train_id, anonymous_monitor_id, status, "
-                    "started_at, last_observation_at, ended_at FROM public.monitor_sessions"
+                    "started_at, last_observation_at, ended_at, line_id, direction FROM public.monitor_sessions"
                 )
-                for (sid, trip_id, train_id, anon, status, started, last_obs, ended) in cur.fetchall():
+                for (sid, trip_id, train_id, anon, status, started, last_obs, ended, line_id, direction) in cur.fetchall():
                     self.sessions[str(sid)] = SessionRow(
                         id=str(sid), trip_id=str(trip_id), train_id=str(train_id),
                         anonymous_monitor_id=anon,
                         status=str(status), started_at=started,
                         ended_at=ended,
                         last_observation_at=last_obs,
+                        line_id=line_id,
+                        direction=direction,
                     )
                 cur.execute(
                     "SELECT ts.trip_id, ts.station_id, s.name_ar, ts.sequence, "
@@ -296,7 +298,9 @@ class PostgresStore:
                        status: str, started_at: datetime,
                        anonymous_monitor_id: str | None = None,
                        ended_at: datetime | None = None,
-                       last_observation_at: datetime | None = None) -> None:
+                       last_observation_at: datetime | None = None,
+                       line_id: str | None = None,
+                       direction: str | None = None) -> None:
         if not self.active:
             return
         with self._conn() as conn:
@@ -304,13 +308,13 @@ class PostgresStore:
                 cur.execute(
                     "INSERT INTO public.monitor_sessions "
                     "(id, trip_id, train_id, anonymous_monitor_id, status, started_at, "
-                    "last_observation_at, ended_at) "
-                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s) "
+                    "last_observation_at, ended_at, line_id, direction) "
+                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
                     "ON CONFLICT (id) DO UPDATE SET "
                     "status=EXCLUDED.status, last_observation_at=EXCLUDED.last_observation_at, "
                     "ended_at=EXCLUDED.ended_at",
                     (session_id, trip_id, train_id, anonymous_monitor_id, status,
-                     started_at, last_observation_at, ended_at),
+                     started_at, last_observation_at, ended_at, line_id, direction),
                 )
 
     def insert_observation(self, row: "object") -> None:
@@ -321,12 +325,13 @@ class PostgresStore:
             with conn.cursor() as cur:
                 cur.execute(
                     "INSERT INTO public.gps_observations "
-                    "(id, session_id, trip_id, train_id, location, accuracy_meters, "
+                    "(id, session_id, trip_id, train_id, line_id, direction, location, accuracy_meters, "
                     "speed_mps, heading_deg, observed_at, is_valid, rejection_reason, "
                     "validation_score) "
-                    "VALUES (%s,%s,%s,%s,ST_SetSRID(ST_MakePoint(%s,%s),4326),%s,%s,%s,%s,%s,%s,%s) "
+                    "VALUES (%s,%s,%s,%s,%s,%s,ST_SetSRID(ST_MakePoint(%s,%s),4326),%s,%s,%s,%s,%s,%s,%s) "
                     "ON CONFLICT (id) DO NOTHING",
                     (row.id, row.session_id, row.trip_id, row.train_id,
+                     getattr(row, "line_id", None), getattr(row, "direction", None),
                      row.longitude, row.latitude, row.accuracy, row.speed,
                      row.heading, row.observed_at, row.accepted,
                      row.rejection_reason, row.validation_score),
