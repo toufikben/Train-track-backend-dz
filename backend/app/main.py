@@ -143,7 +143,8 @@ class ResumeMonitorSessionIn(BaseModel):
 
 class ReportIn(BaseModel):
     session_id: str | None = None
-    train_id: str
+    # Optional only for a public-corridor report bound to an active session.
+    train_id: str | None = None
     trip_id: str | None = None
     station_id: str | None = None
     report_type: str = "OTHER"
@@ -967,20 +968,34 @@ def set_trip_stops(body: TripStopsIn) -> dict[str, Any]:
 
 # ─── Reports (evidence only — never auto-fabricated) ─────────────────────────
 def _validate_report_session(body: ReportIn) -> None:
-    """When supplied, bind a report to an existing non-ended monitor session."""
+    """Bind reports to a live session; allow null train/trip only for public corridors."""
+    if body.train_id is None and body.session_id is None:
+        raise HTTPException(status_code=422, detail="public_report_session_required")
     if body.session_id is None:
+        if body.trip_id is None:
+            raise HTTPException(status_code=422, detail="public_report_session_required")
         return
     _validate_db_uuid_fields(("session_id", body.session_id))
     session = store.sessions.get(body.session_id)
     if session is None:
         raise HTTPException(status_code=409, detail="session_not_found")
-    if session.status == "ENDED" or session.train_id != body.train_id or session.trip_id != body.trip_id:
+    if session.status == "ENDED":
+        raise HTTPException(status_code=409, detail="session_binding_mismatch")
+    if body.train_id is None:
+        if body.trip_id is not None or session.trip_id is not None or session.train_id is not None:
+            raise HTTPException(status_code=409, detail="public_report_requires_public_session")
+        return
+    if session.train_id != body.train_id or session.trip_id != body.trip_id:
         raise HTTPException(status_code=409, detail="session_binding_mismatch")
 
 
 @app.post("/reports", dependencies=[Depends(require_public_writes_enabled)])
 def submit_report(request: Request, body: ReportIn) -> dict[str, str]:
-    enforce_rate_limit(request, report_limiter, f"report:{body.train_id}:{body.trip_id or ''}")
+    enforce_rate_limit(
+        request,
+        report_limiter,
+        f"report:{body.session_id or 'anonymous'}:{body.train_id or 'public'}:{body.report_type}",
+    )
     _validate_db_uuid_fields(
         ("train_id", body.train_id), ("trip_id", body.trip_id), ("station_id", body.station_id)
     )
