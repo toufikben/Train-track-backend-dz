@@ -972,8 +972,7 @@ def _validate_report_session(body: ReportIn) -> None:
     if body.train_id is None and body.session_id is None:
         raise HTTPException(status_code=422, detail="public_report_session_required")
     if body.session_id is None:
-        if body.trip_id is None:
-            raise HTTPException(status_code=422, detail="public_report_session_required")
+        # Preserve the legacy train-scoped report contract.
         return
     _validate_db_uuid_fields(("session_id", body.session_id))
     session = store.sessions.get(body.session_id)
